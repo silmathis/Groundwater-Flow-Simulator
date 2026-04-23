@@ -31,7 +31,7 @@ This simulator allows students and educators to interactively explore how hydrau
 ### Running the App
 
 ```bash
-streamlit run app.py
+streamlit run my_project/app.py
 ```
 
 The app will open in your web browser at `http://localhost:8501`.
@@ -97,12 +97,16 @@ where **R** is the recharge rate.
 
 ```
 my_project/
-├── app.py                      # Streamlit web application
-├── pyproject.toml              # Project metadata and dependencies
-├── README.md                   # This file
+├── pyproject.toml                     # Project metadata and dependencies
+├── README.md                          # This file
 └── my_project/
-    ├── __init__.py
-    └── groundwater_model.py    # Core simulation module
+  ├── __init__.py
+  ├── app.py                         # Entry point (forwards to frontend)
+  ├── groundwater_model.py           # Core physics model
+  ├── frontend/
+  │   └── streamlit_app.py           # UI layer
+  └── backend/
+    └── simulation_service.py      # Simulation service layer
 ```
 
 ## Dependencies

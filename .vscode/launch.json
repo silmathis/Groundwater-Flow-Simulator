@@ -8,7 +8,7 @@
       "module": "streamlit",
       "args": [
         "run",
-        "my_project/app.py"
+        "my_project/my_project/app.py"
       ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
@@ -21,7 +21,7 @@
       "name": "Python: app.py starten",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/my_project/app.py",
+      "program": "${workspaceFolder}/my_project/my_project/app.py",
       "console": "integratedTerminal"
     }
   ]

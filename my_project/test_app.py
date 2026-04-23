@@ -6,6 +6,7 @@ Quick test to verify the groundwater simulator works correctly.
 import sys
 sys.path.insert(0, '.')
 
+from my_project.backend import run_simulation
 from my_project.groundwater_model import GroundwaterModel
 import numpy as np
 
@@ -17,6 +18,30 @@ print("=" * 60)
 print("\n1. Creating model...")
 model = GroundwaterModel(nx=50, ny=40, cell_size=10.0)
 print(f"   [OK] Model created: {model.nx}x{model.ny} grid")
+
+print("\n1b. Testing backend service layer...")
+service_result = run_simulation({
+    "nx": 30,
+    "ny": 20,
+    "head_north": 15.0,
+    "head_south": 5.0,
+    "head_west": 10.0,
+    "head_east": 10.0,
+    "background_k": 1.0,
+    "zone_x_min": 5,
+    "zone_x_max": 20,
+    "zone_y_min": 4,
+    "zone_y_max": 16,
+    "selected_k": 0.1,
+    "recharge_rate": 0.01,
+    "recharge_x_min": 8,
+    "recharge_x_max": 22,
+    "recharge_y_min": 2,
+    "recharge_y_max": 8,
+    "iterations": 80,
+    "tolerance": 1e-3,
+})
+print(f"   [OK] Backend returned head shape: {service_result['model'].head.shape}")
 
 # Set boundary conditions
 print("\n2. Setting boundary conditions...")
@@ -56,6 +81,6 @@ print("\n" + "=" * 60)
 print("SUCCESS: ALL TESTS PASSED")
 print("=" * 60)
 print("\nTo run the web app, use:")
-print("  python -m streamlit run app.py")
+print("  python -m streamlit run my_project/app.py")
 print("\nOr visit: http://localhost:8501")
 print("=" * 60)

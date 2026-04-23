@@ -15,23 +15,27 @@ goto END
 
 :RUN_LOCAL
 echo Starting local Streamlit app...
-set "VENV_PY=%~dp0.venv\Scripts\python.exe"
+set "VENV_PY=%~dp0..\..\.venv\Scripts\python.exe"
 
 if exist "%VENV_PY%" (
+	echo Using virtual environment Python:
+	echo   %VENV_PY%
 	"%VENV_PY%" -m streamlit run app.py
 ) else (
-	echo [WARN] Local virtual environment not found at .venv\Scripts\python.exe
-	echo [WARN] Falling back to system Python from PATH.
-	python -m streamlit run app.py
+	echo [ERROR] Root virtual environment not found at:
+	echo         %VENV_PY%
+	echo [HINT] Create it in workspace root and install dependencies.
+	goto END
 )
 
 if errorlevel 1 (
 	echo.
 	echo [ERROR] Failed to start Streamlit app.
-	echo [HINT] Recreate venv and install dependencies:
+	echo [HINT] Create root venv and install dependencies:
+	echo        cd ..\..
 	echo        py -3.11 -m venv .venv
 	echo        .venv\Scripts\python.exe -m pip install -U pip
-	echo        .venv\Scripts\python.exe -m pip install -e .
+	echo        .venv\Scripts\python.exe -m pip install -r requirements.txt
 )
 
 pause
