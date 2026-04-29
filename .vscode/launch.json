@@ -5,36 +5,9 @@
       "name": "Streamlit: Run",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "streamlit",
       "args": ["run", "app.py"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Streamlit: Debug",
-      "type": "python",
-      "request": "launch",
-      "module": "streamlit",
-      "args": ["run", "app.py", "--server.headless", "true", "--server.port", "8501"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": false
-    }
-  ]
-}
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Run Groundwater Streamlit App",
-      "type": "python",
-      "request": "launch",
-      "module": "streamlit",
-      "args": [
-        "run",
-        "my_project/my_project/app.py"
-      ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true,
@@ -43,11 +16,20 @@
       }
     },
     {
-      "name": "Python: app.py starten",
+      "name": "Streamlit: Debug",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/my_project/my_project/app.py",
-      "console": "integratedTerminal"
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "module": "streamlit",
+      "args": ["run", "app.py", "--server.headless", "true", "--server.port", "8501"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
+        "PYDEVD_USE_CYTHON": "NO",
+        "PYDEVD_USE_FRAME_EVAL": "NO"
+      }
     }
   ]
 }
