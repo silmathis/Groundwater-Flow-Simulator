@@ -40,6 +40,32 @@ git push -u origin feature/mein-feature-name
 git push
 ```
 
+## Branch auf den aktuellen Stand von main bringen
+
+Wenn dein aktueller Branch die neuesten Änderungen aus `main` bekommen soll, ist das der übliche Ablauf:
+
+### Variante 1: Rebase auf main
+```bash
+# Erst die neuesten Remote-Infos holen
+git fetch origin
+
+# Aktuellen Branch auf main neu aufbauen
+git rebase origin/main
+```
+
+### Variante 2: Merge mit main
+```bash
+# Erst die neuesten Remote-Infos holen
+git fetch origin
+
+# main in den aktuellen Branch mergen
+git merge origin/main
+```
+
+**Tipp:**
+- `rebase` hält die Historie sauberer, kann aber bei bereits gepushten Branches ein Force-Push nötig machen.
+- `merge` ist einfacher, erzeugt dafür meist einen zusätzlichen Merge-Commit.
+
 ## Branch mergen
 
 ### 1. Zurück zur Hauptbranch
