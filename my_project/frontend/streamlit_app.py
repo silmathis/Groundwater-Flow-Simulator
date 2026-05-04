@@ -189,7 +189,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_head = go.Figure(
                 data=go.Contour(
                     z=model.head,
-                    colorscale="Viridis",
+                    colorscale="jet",
                     colorbar=dict(title="Head (m)"),
                     contours=dict(coloring="heatmap"),
                 )

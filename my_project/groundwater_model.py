@@ -44,10 +44,10 @@ class GroundwaterModel:
         self.head_initial = self.head.copy()
         
         # Boundary conditions (fixed head at edges)
-        self.head_north = 15.0  # m
-        self.head_south = 5.0   # m
-        self.head_east = 10.0   # m
-        self.head_west = 10.0   # m
+        self.head_north = 30.0  # m
+        self.head_south = 0.0   # m
+        self.head_east = 0.0   # m
+        self.head_west = 0.0   # m
 
         self._initialize_head()
 
