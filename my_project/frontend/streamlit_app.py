@@ -4,8 +4,34 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-from my_project.backend import run_simulation
+from my_project.backend.simulation_service import run_simulation
 from my_project.groundwater_model import GroundwaterModel
+
+def add_compass_and_invert_yaxis(fig, ny, nx):
+    """
+    Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
+    North should be at the top, South at the bottom.
+    """
+    # Invert y-axis so North (index 0) is at top
+    fig.update_yaxes(autorange="reversed")
+    
+    # Add compass annotations
+    compass_props = dict(showarrow=False, font=dict(size=14, color="black"), 
+                         bgcolor="rgba(255,255,255,0.7)", borderpad=4)
+    
+    # North (oben mittig)
+    fig.add_annotation(x=nx/2, y=-2, text="<b>N</b>", xanchor="center", **compass_props)
+    
+    # South (unten mittig)
+    fig.add_annotation(x=nx/2, y=ny+2, text="<b>S</b>", xanchor="center", **compass_props)
+    
+    # Ost/East (rechts mittig)
+    fig.add_annotation(x=nx+2, y=ny/2, text="<b>O</b>", yanchor="middle", **compass_props)
+    
+    # West (links mittig)
+    fig.add_annotation(x=-2, y=ny/2, text="<b>W</b>", yanchor="middle", **compass_props)
+    
+    return fig
 
 
 def main() -> None:
@@ -132,7 +158,7 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     col_main, col_info = st.columns([3, 1])
 
-    if st.button("Solve Model", use_container_width=True, type="primary"):
+    if st.button("Solve Model", width="stretch", type="primary"):
         with st.spinner("Solving..."):
             config = {
                 "nx": nx,
@@ -195,7 +221,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                 )
             )
             fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            st.plotly_chart(fig_head, use_container_width=True)
+            fig_head = add_compass_and_invert_yaxis(fig_head, model.ny, model.nx)
+            st.plotly_chart(fig_head, width="stretch")
 
         with tabs[1]:
             fig_cond = go.Figure(
@@ -206,7 +233,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                 )
             )
             fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            st.plotly_chart(fig_cond, use_container_width=True)
+            fig_cond = add_compass_and_invert_yaxis(fig_cond, model.ny, model.nx)
+            st.plotly_chart(fig_cond, width="stretch")
 
         with tabs[2]:
             fig_mag = go.Figure(
@@ -218,7 +246,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                 )
             )
             fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            st.plotly_chart(fig_mag, use_container_width=True)
+            fig_mag = add_compass_and_invert_yaxis(fig_mag, model.ny, model.nx)
+            st.plotly_chart(fig_mag, width="stretch")
 
         with tabs[3]:
             fig_vec = go.Figure(data=go.Heatmap(z=q_mag, colorscale="Blues", colorbar=dict(title="Flow (m/day)")))
@@ -243,7 +272,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                             showarrow=True,
                         )
             fig_vec.update_layout(title="Flow Direction and Magnitude", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            st.plotly_chart(fig_vec, use_container_width=True)
+            fig_vec = add_compass_and_invert_yaxis(fig_vec, model.ny, model.nx)
+            st.plotly_chart(fig_vec, width="stretch")
 
         with tabs[4]:
             if has_previous:
@@ -257,11 +287,13 @@ It is **not** suitable for engineering predictions or real-world applications.
 
                 fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
                 fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=450)
-                st.plotly_chart(fig_head_delta, use_container_width=True)
+                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, model.ny, model.nx)
+                st.plotly_chart(fig_head_delta, width="stretch")
 
                 fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
                 fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=450)
-                st.plotly_chart(fig_flow_delta, use_container_width=True)
+                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, model.ny, model.nx)
+                st.plotly_chart(fig_flow_delta, width="stretch")
             else:
                 st.info("Solve at least twice with different inputs to see change maps.")
 
