@@ -54,34 +54,53 @@ It is **not** suitable for engineering predictions or real-world applications.
         head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
         head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
 
-    st.sidebar.subheader("Subsurface Zones")
-    zone_type = st.sidebar.radio(
-        "Add/modify zone:",
-        ["High conductivity (sand)", "Low conductivity (clay)", "Medium (silt)"],
+    st.sidebar.subheader("Conductivity")
+    conductivity_mode = st.sidebar.radio(
+        "Medium type",
+        ["Homogeneous medium", "Heterogeneous medium with zone"],
     )
 
-    zone_conductivities = {
-        "High conductivity (sand)": 5.0,
-        "Low conductivity (clay)": 0.1,
-        "Medium (silt)": 1.0,
-    }
-    selected_k = zone_conductivities[zone_type]
+    zone_type = None
+    selected_k = None
+    zone_x_min = zone_x_max = zone_y_min = zone_y_max = 0
 
-    background_k = st.sidebar.slider(
-        "Background conductivity K (m/day)",
-        min_value=0.1,
-        max_value=5.0,
-        value=1.0,
-        step=0.1,
-    )
+    if conductivity_mode == "Homogeneous medium":
+        background_k = st.sidebar.slider(
+            "Homogeneous conductivity K (m/day)",
+            min_value=0.1,
+            max_value=5.0,
+            value=1.0,
+            step=0.1,
+        )
+    else:
+        st.sidebar.subheader("Subsurface Zones")
+        zone_type = st.sidebar.radio(
+            "Add/modify zone:",
+            ["High conductivity (sand)", "Low conductivity (clay)", "Medium (silt)"],
+        )
 
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        zone_x_min = st.number_input("X start", 0, nx - 1, value=int(nx * 0.2))
-        zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
-    with col2:
-        zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
-        zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
+        zone_conductivities = {
+            "High conductivity (sand)": 5.0,
+            "Low conductivity (clay)": 0.1,
+            "Medium (silt)": 1.0,
+        }
+        selected_k = zone_conductivities[zone_type]
+
+        background_k = st.sidebar.slider(
+            "Background conductivity K (m/day)",
+            min_value=0.1,
+            max_value=5.0,
+            value=1.0,
+            step=0.1,
+        )
+
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            zone_x_min = st.number_input("X start", 0, nx - 1, value=int(nx * 0.2))
+            zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
+        with col2:
+            zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
+            zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
 
     st.sidebar.subheader("Recharge (Infiltration)")
     recharge_rate = st.sidebar.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
@@ -110,6 +129,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         head_south,
         head_west,
         head_east,
+        conductivity_mode,
         zone_type,
         zone_x_min,
         zone_x_max,
@@ -142,6 +162,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "head_west": head_west,
                 "head_east": head_east,
                 "background_k": background_k,
+                "conductivity_mode": conductivity_mode,
                 "zone_x_min": zone_x_min,
                 "zone_x_max": zone_x_max,
                 "zone_y_min": zone_y_min,

@@ -13,13 +13,16 @@ def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
     model.head_east = config["head_east"]
 
     model.set_background_conductivity(config["background_k"])
-    model.set_zone(
-        config["zone_x_min"],
-        config["zone_x_max"],
-        config["zone_y_min"],
-        config["zone_y_max"],
-        config["selected_k"],
-    )
+
+    if config["conductivity_mode"] == "Heterogeneous medium with zone":
+        model.set_zone(
+            config["zone_x_min"],
+            config["zone_x_max"],
+            config["zone_y_min"],
+            config["zone_y_max"],
+            config["selected_k"],
+        )
+
     model.set_recharge(
         config["recharge_x_min"],
         config["recharge_x_max"],
