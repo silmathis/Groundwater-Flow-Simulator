@@ -22,16 +22,37 @@ This simulator allows students and educators to interactively explore how hydrau
 
 ### Installation
 
-1. Clone or download this repository
-2. Install the package in development mode:
-   ```bash
-   pip install -e .
-   ```
+`pip install -e .` installs this project into the currently active Python environment.
+It does **not** create a virtual environment by itself.
+
+#### Recommended setup on Windows
+
+1. Open a terminal in the repository root.
+2. Create a virtual environment:
+  ```bash
+  python -m venv .venv
+  ```
+3. Activate it:
+  ```bash
+  .\.venv\Scripts\activate
+  ```
+4. Install the project and dependencies:
+  ```bash
+  python -m pip install -e .
+  ```
+
+If `pip install -e .` fails with `command not found`, use `python -m pip ...` instead of `pip ...`.
 
 ### Running the App
 
 ```bash
 streamlit run app.py
+```
+
+If the app is already running inside the virtual environment, you can also use:
+
+```bash
+python -m streamlit run app.py
 ```
 
 The app will open in your web browser at `http://localhost:8501`.
