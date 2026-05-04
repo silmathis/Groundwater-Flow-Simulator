@@ -63,15 +63,27 @@ git merge feature/mein-feature-name
 git push origin main
 ```
 
-## Branch aufräumen (optional)
+## Branch löschen
 
+### Lokal löschen
 ```bash
-# Lokale Branch löschen
+# Erst zur anderen Branch wechseln (z.B. main)
+git checkout main
+
+# Dann die Branch löschen (nur wenn gemerged)
 git branch -d feature/mein-feature-name
 
-# Auf Remote löschen
+# Oder erzwingen (auch wenn nicht gemerged)
+git branch -D feature/mein-feature-name
+```
+
+### Auch auf Remote löschen
+```bash
+# Wenn bereits gepusht wurde:
 git push origin --delete feature/mein-feature-name
 ```
+
+**Tipp:** Eine frisch erstellte Branch, die noch nicht gepusht wurde, kann einfach lokal gelöscht werden!
 
 ## Überblick behalten
 
