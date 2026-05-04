@@ -25,7 +25,7 @@ This simulator allows students and educators to interactively explore how hydrau
 `pip install -e .` installs this project into the currently active Python environment.
 It does **not** create a virtual environment by itself.
 
-#### Recommended setup on Windows
+#### Recommended setup with Bash / Git Bash on Windows
 
 1. Open a terminal in the repository root.
 2. Create a virtual environment:
@@ -34,7 +34,7 @@ It does **not** create a virtual environment by itself.
   ```
 3. Activate it:
   ```bash
-  .\.venv\Scripts\activate
+  source .venv/Scripts/activate
   ```
 4. Install the project and dependencies:
   ```bash
@@ -42,6 +42,7 @@ It does **not** create a virtual environment by itself.
   ```
 
 If `pip install -e .` fails with `command not found`, use `python -m pip ...` instead of `pip ...`.
+If the activation command fails, make sure you are in the repository root and that `.venv` exists.
 
 ### Running the App
 

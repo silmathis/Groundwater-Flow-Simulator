@@ -1,4 +1,5 @@
 """Root entry point so `streamlit run app.py` works from workspace root."""
+#funktioniert wenn man im Terminal `streamlit run app.py` eingibt, da es die Hauptdatei ist, die Streamlit ausführt. Es importiert die Hauptfunktion aus der Streamlit-App und führt sie aus. Man muss im Hauptordner sein um den command nutzen zu können.
 
 from pathlib import Path
 import sys
