@@ -381,6 +381,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Flow Magnitude",
             "Flow Vectors",
             "Change vs Previous Solve",
+            "Recharge Map", 
         ])
 
         with tabs[0]:
@@ -498,6 +499,13 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.plotly_chart(fig_flow_delta, width="stretch")
             else:
                 st.info("Solve at least twice with different inputs to see change maps.")
+        
+        with tabs[5]:
+            recharge_map = np.zeros_like(model.head)
+            recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
+            fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
+            st.plotly_chart(fig_recharge, use_container_width=True)    
 
 
 if __name__ == "__main__":
