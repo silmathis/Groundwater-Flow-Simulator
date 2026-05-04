@@ -25,24 +25,30 @@ This simulator allows students and educators to interactively explore how hydrau
 `pip install -e .` installs this project into the currently active Python environment.
 It does **not** create a virtual environment by itself.
 
-#### Recommended setup with Bash / Git Bash on Windows
+#### Recommended setup (macOS / Linux / Windows)
 
-1. Open a terminal in the repository root.
-2. Create a virtual environment:
-  ```bash
-  python -m venv .venv
-  ```
-3. Activate it:
-  ```bash
-  source .venv/Scripts/activate
-  ```
-4. Install the project and dependencies:
-  ```bash
-  python -m pip install -e .
-  ```
+Open a terminal in the **repository root** and follow the platform-specific steps below to create and activate a virtual environment, then install the project.
 
-If `pip install -e .` fails with `command not found`, use `python -m pip ...` instead of `pip ...`.
-If the activation command fails, make sure you are in the repository root and that `.venv` exists.
+macOS / Linux (bash, zsh):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -e .
+```
+
+Windows (with Git Bash):
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install -e .
+```
+
+Notes:
+- Use `python3` on systems where `python` maps to Python 2 or is not available. For example, `python3 -m venv .venv` and `python3 -m pip install -e .` on macOS.
+- If `pip install -e .` fails with `command not found`, prefer the `python -m pip ...` form shown above.
+- If activation fails, verify you are in the repository root and that the `.venv` directory was created. On macOS you may need to allow script execution or use a different shell (e.g., `zsh`).
 
 ### Running the App
 
