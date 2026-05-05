@@ -7,7 +7,8 @@ import streamlit as st
 from my_project.backend.simulation_service import run_simulation
 from my_project.groundwater_model import GroundwaterModel
 
-def add_compass_and_invert_yaxis(fig, ny, nx):
+
+def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
     Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
     North should be at the top, South at the bottom.
@@ -20,16 +21,16 @@ def add_compass_and_invert_yaxis(fig, ny, nx):
                          bgcolor="rgba(255,255,255,0.7)", borderpad=4)
     
     # North (oben mittig)
-    fig.add_annotation(x=nx/2, y=-2, text="<b>N</b>", xanchor="center", **compass_props)
+    fig.add_annotation(x=x_max / 2, y=-pad, text="<b>N</b>", xanchor="center", **compass_props)
     
     # South (unten mittig)
-    fig.add_annotation(x=nx/2, y=ny+2, text="<b>S</b>", xanchor="center", **compass_props)
+    fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
     
     # Ost/East (rechts mittig)
-    fig.add_annotation(x=nx+2, y=ny/2, text="<b>O</b>", yanchor="middle", **compass_props)
+    fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>O</b>", yanchor="middle", **compass_props)
     
     # West (links mittig)
-    fig.add_annotation(x=-2, y=ny/2, text="<b>W</b>", yanchor="middle", **compass_props)
+    fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
     
     return fig
 
@@ -99,6 +100,11 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.session_state.current_result = None
 
     model = st.session_state.model
+    cell_size = model.cell_size
+    x_coords = np.arange(model.nx) * cell_size
+    y_coords = np.arange(model.ny) * cell_size
+    x_max = x_coords[-1]
+    y_max = y_coords[-1]
 
     st.sidebar.header("Model Parameters")
 
@@ -213,15 +219,17 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_bg = go.Figure(
                 data=go.Heatmap(
                     z=bg_grid,
+                    x=np.arange(nx) * cell_size,
+                    y=np.arange(ny) * cell_size,
                     colorscale=[[0, bg_color], [1, bg_color]],
                     showscale=False,
-                    hovertemplate="Background: %{x}, %{y}<extra></extra>",
+                    hovertemplate="Background: x=%{x:.1f} m<br>y=%{y:.1f} m<extra></extra>",
                 )
             )
             fig_bg.update_layout(
                 title="Background Preview",
-                xaxis_title="X",
-                yaxis_title="Y",
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
                 height=preview_height,
                 margin=dict(l=30, r=30, t=30, b=30),
             )
@@ -272,15 +280,17 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_zone = go.Figure(
                 data=go.Heatmap(
                     z=combined_grid,
+                    x=np.arange(nx) * cell_size,
+                    y=np.arange(ny) * cell_size,
                     colorscale=[[0, bg_color], [1, zone_color]],
                     showscale=False,
-                    hovertemplate="X: %{x}<br>Y: %{y}<br>Zone: %{z}<extra></extra>",
+                    hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Zone: %{z}<extra></extra>",
                 )
             )
             fig_zone.update_layout(
                 title="Domain Preview (background + zone)",
-                xaxis_title="X",
-                yaxis_title="Y",
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
                 height=preview_height,
                 margin=dict(l=30, r=30, t=40, b=30),
             )
@@ -307,15 +317,17 @@ It is **not** suitable for engineering predictions or real-world applications.
         fig_recharge = go.Figure(
             data=go.Heatmap(
                 z=recharge_grid,
+                x=np.arange(nx) * cell_size,
+                y=np.arange(ny) * cell_size,
                 colorscale="Blues",
                 showscale=False,
-                hovertemplate="X: %{x}<br>Y: %{y}<br>Rate: %{z:.4f} m/day<extra></extra>",
+                hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Rate: %{z:.4f} m/day<extra></extra>",
             )
         )
         fig_recharge.update_layout(
             title="Recharge Zone Preview",
-            xaxis_title="X",
-            yaxis_title="Y",
+            xaxis_title="X (m)",
+            yaxis_title="Y (m)",
             height=preview_height,
             margin=dict(l=30, r=30, t=40, b=30),
         )
@@ -413,7 +425,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.subheader("Results")
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
             st.metric("Head (max)", f"{summary['head_max']:.2f} m")
-            st.metric("Flow (max)", f"{summary['flow_max']:.3f} m/day")
+            st.metric("Max flow (m/day)", f"{summary['flow_max']:.3f}")
 
         tabs = st.tabs([
             "Hydraulic Head",
@@ -428,38 +440,44 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_head = go.Figure(
                 data=go.Contour(
                     z=model.head,
+                    x=x_coords,
+                    y=y_coords,
                     colorscale="jet",
                     colorbar=dict(title="Head (m)"),
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            fig_head = add_compass_and_invert_yaxis(fig_head, model.ny, model.nx)
+            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, width="stretch")
 
         with tabs[1]:
             fig_cond = go.Figure(
                 data=go.Heatmap(
                     z=np.log10(model.hydraulic_conductivity),
+                    x=x_coords,
+                    y=y_coords,
                     colorscale="RdYlBu_r",
                     colorbar=dict(title="log10(K)"),
                 )
             )
-            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            fig_cond = add_compass_and_invert_yaxis(fig_cond, model.ny, model.nx)
+            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             st.plotly_chart(fig_cond, width="stretch")
 
         with tabs[2]:
             fig_mag = go.Figure(
                 data=go.Contour(
                     z=q_mag,
+                    x=x_coords,
+                    y=y_coords,
                     colorscale="Plasma",
                     colorbar=dict(title="Flow (m/day)"),
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            fig_mag = add_compass_and_invert_yaxis(fig_mag, model.ny, model.nx)
+            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, width="stretch")
 
         with tabs[3]:
@@ -468,13 +486,15 @@ It is **not** suitable for engineering predictions or real-world applications.
             
             fig_vec = go.Figure(data=go.Heatmap(
                 z=q_mag_display, 
+                x=x_coords,
+                y=y_coords,
                 colorscale="RdYlBu_r",
                 colorbar=dict(title="Flow log10(m/day)"),
-                hovertemplate="X: %{x}<br>Y: %{y}<br>Flow: %{customdata:.3e} m/day<extra></extra>",
+                hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Flow: %{customdata:.3e} m/day<extra></extra>",
                 customdata=q_mag
             ))
             
-            # Use finer grid for more arrows (every 2-3 cells instead of sparse)
+            # Use finer sampling for more arrows.
             step = max(1, max(model.nx, model.ny) // 20)
             
             for i in range(0, model.ny, step):
@@ -490,14 +510,14 @@ It is **not** suitable for engineering predictions or real-world applications.
                         normalized_mag = 0
                     
                     # Adaptive scaling: larger for stronger flows
-                    scale_factor = 2.5 + 3.5 * normalized_mag  # Range 2.5 to 6.0
+                    scale_factor = cell_size * (0.25 + 0.35 * normalized_mag)
                     arrow_width = max(0.5, 3.0 * normalized_mag)  # Range 0.5 to 3.0
                     
                     fig_vec.add_annotation(
-                        x=j,
-                        y=i,
-                        ax=j - qx[i, j] * scale_factor,
-                        ay=i - qy[i, j] * scale_factor,
+                        x=x_coords[j],
+                        y=y_coords[i],
+                        ax=x_coords[j] - qx[i, j] * scale_factor,
+                        ay=y_coords[i] - qy[i, j] * scale_factor,
                         arrowhead=2,
                         arrowsize=1.5,
                         arrowwidth=arrow_width,
@@ -512,10 +532,11 @@ It is **not** suitable for engineering predictions or real-world applications.
             
             fig_vec.update_layout(
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
-                xaxis_title="X (cells)",
-                yaxis_title="Y (cells)",
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
                 height=550
             )
+            fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
             st.plotly_chart(fig_vec, use_container_width=True)
 
         with tabs[4]:
@@ -528,14 +549,14 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.metric("max |Delta head|", f"{np.max(np.abs(head_delta)):.3f} m")
                 st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
 
-                fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
-                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=450)
-                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, model.ny, model.nx)
+                fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
+                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_head_delta, width="stretch")
 
-                fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
-                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=450)
-                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, model.ny, model.nx)
+                fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
+                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_flow_delta, width="stretch")
             else:
                 st.info("Solve at least twice with different inputs to see change maps.")
@@ -543,8 +564,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         with tabs[5]:
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
-            fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
-            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
+            fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
             st.plotly_chart(fig_recharge, use_container_width=True)    
 
 
