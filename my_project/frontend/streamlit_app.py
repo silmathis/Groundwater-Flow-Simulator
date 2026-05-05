@@ -122,7 +122,7 @@ It is **not** suitable for engineering predictions or real-world applications.
 
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            zone_x_min = st.number_input("X start", 0, nx - 1, value=int(nx * 0.2))
+            zone_x_min = st.number_input("X start", 0, nx, value=int(nx * 0.2))
             zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
         with col2:
             zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
@@ -130,7 +130,7 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     st.sidebar.subheader("Recharge (Infiltration)")
     recharge_rate = st.sidebar.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
-    recharge_x_min = st.sidebar.number_input("R: X start", 0, nx - 1, value=int(nx * 0.3), key="rechg_x_min")
+    recharge_x_min = st.sidebar.number_input("R: X start", 0, nx, value=int(nx * 0.3), key="rechg_x_min")
     recharge_x_max = st.sidebar.number_input("R: X end", 1, nx, value=int(nx * 0.7), key="rechg_x_max")
     recharge_y_min = st.sidebar.number_input("R: Y start", 0, ny - 1, value=int(ny * 0.1), key="rechg_y_min")
     recharge_y_max = st.sidebar.number_input("R: Y end", 1, ny, value=int(ny * 0.3), key="rechg_y_max")
