@@ -20,6 +20,22 @@ This simulator allows students and educators to interactively explore how hydrau
 
 ## Getting Started
 
+### ⚡ Activate Virtual Environment (Every New Terminal Session)
+
+**Windows (Git Bash / PowerShell):**
+```bash
+source .venv/Scripts/activate
+```
+
+**macOS / Linux:**
+```bash
+source .venv/bin/activate
+```
+
+✅ Success: `(.venv)` should appear at the start of your terminal prompt.
+
+---
+
 ### Installation
 
 `pip install -e .` installs this project into the currently active Python environment.
