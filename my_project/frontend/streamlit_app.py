@@ -42,6 +42,47 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
+    st.markdown(
+        """
+        <style>
+            section[data-testid="stSidebar"] {
+                min-width: 380px;
+                max-width: 380px;
+                width: 380px;
+            }
+
+            section[data-testid="stSidebar"][aria-expanded="false"] {
+                min-width: 0 !important;
+                max-width: 0 !important;
+                width: 0 !important;
+                overflow: hidden !important;
+            }
+
+            div[data-testid="stSidebarResizer"] {
+                display: none;
+            }
+
+            section[data-testid="stSidebar"][aria-expanded="false"] ~ div main {
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            button[data-testid="collapsedControl"] {
+                position: fixed !important;
+                left: 0.25rem !important;
+                top: 0.75rem !important;
+                right: auto !important;
+                z-index: 1000 !important;
+            }
+
+            div[data-testid="stMainBlockContainer"] {
+                max-width: none !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.title("Interactive Groundwater Flow Simulator")
     st.markdown(
         """
@@ -61,9 +102,9 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     st.sidebar.header("Model Parameters")
 
-    st.sidebar.subheader("Domain Size")
-    nx = st.sidebar.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
-    ny = st.sidebar.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
+    with st.sidebar.expander("Domain Size", expanded=False):
+        nx = st.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
+        ny = st.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
 
     if nx != model.nx or ny != model.ny:
         for idx in range(1, 7):
@@ -78,118 +119,221 @@ It is **not** suitable for engineering predictions or real-world applications.
         model = st.session_state.model
         st.rerun()
 
-    st.sidebar.subheader("Point Sources (Fixed Hydraulic Head)")
-    st.sidebar.caption("Coordinates for point sources are linked to the grid size selected above.")
-    point_source_count = st.sidebar.slider("Number of point sources", 1, 6, 2)
+    with st.sidebar.expander("Hydraulic Head", expanded=False):
+        with st.expander("Point Sources", expanded=False):
+            st.caption("Coordinates for point sources are linked to the grid size selected above.")
+            point_source_count = st.slider("Number of point sources", 1, 6, 2)
 
-    point_sources = []
-    for idx in range(1, point_source_count + 1):
-        default_x = int(round((idx / (point_source_count + 1)) * nx))
-        default_y = int(ny * 0.5)
-        default_h = 20.0 if idx % 2 else 5.0
-        with st.sidebar.expander(f"Point {idx}", expanded=idx <= 2):
-            x_val = st.number_input(f"P{idx}: X coord", min_value=0, value=default_x, step=1, key=f"ps{idx}_x")
-            y_val = st.number_input(f"P{idx}: Y coord", min_value=0, value=default_y, step=1, key=f"ps{idx}_y")
-            h_val = st.slider(f"P{idx}: Head (m)", 0.0, 30.0, default_h, step=0.5, key=f"ps{idx}_h")
+            point_sources = []
+            for idx in range(1, point_source_count + 1):
+                default_x = int(round((idx / (point_source_count + 1)) * nx))
+                default_y = int(ny * 0.5)
+                default_h = 20.0 if idx % 2 else 5.0
+                with st.expander(f"Point {idx}", expanded=False):
+                    x_val = st.number_input(f"P{idx}: X coord", min_value=0, value=default_x, step=1, key=f"ps{idx}_x")
+                    y_val = st.number_input(f"P{idx}: Y coord", min_value=0, value=default_y, step=1, key=f"ps{idx}_y")
+                    h_val = st.slider(f"P{idx}: Head (m)", 0.0, 30.0, default_h, step=0.5, key=f"ps{idx}_h")
 
-        x_coord = int(x_val)
-        y_coord = int(y_val)
-        if x_coord > nx:
-            st.sidebar.warning(f"Point {idx}: X coordinate exceeds grid width ({nx}). It will be clipped to {nx}.")
-            x_coord = nx
-        if y_coord > ny:
-            st.sidebar.warning(f"Point {idx}: Y coordinate exceeds grid height ({ny}). It will be clipped to {ny}.")
-            y_coord = ny
+                x_coord = int(x_val)
+                y_coord = int(y_val)
+                if x_coord > nx:
+                    st.warning(f"Point {idx}: X coordinate exceeds grid width ({nx}). It will be clipped to {nx}.")
+                    x_coord = nx
+                if y_coord > ny:
+                    st.warning(f"Point {idx}: Y coordinate exceeds grid height ({ny}). It will be clipped to {ny}.")
+                    y_coord = ny
 
-        # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
-        point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
+                # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
+                point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
 
+        with st.expander("Boundary Conditions", expanded=False):
+            use_boundary_conditions = st.checkbox("Use boundary conditions", value=False)
 
-    st.sidebar.subheader("Boundary Conditions (Head in meters)")
-    use_boundary_conditions = st.sidebar.checkbox("Use boundary conditions", value=False)
+            head_north = 15.0
+            head_south = 5.0
+            head_west = 10.0
+            head_east = 10.0
 
-    head_north = 15.0
-    head_south = 5.0
-    head_west = 10.0
-    head_east = 10.0
+            if use_boundary_conditions:
+                col1, col2 = st.columns(2)
+                with col1:
+                    head_north = st.slider("North (top)", 0.0, 30.0, 15.0, step=0.5)
+                    head_south = st.slider("South (bottom)", 0.0, 30.0, 5.0, step=0.5)
+                with col2:
+                    head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
+                    head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
 
-    if use_boundary_conditions:
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            head_north = st.slider("North (top)", 0.0, 30.0, 15.0, step=0.5)
-            head_south = st.slider("South (bottom)", 0.0, 30.0, 5.0, step=0.5)
-        with col2:
-            head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
-            head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
+    with st.sidebar.expander("Conductivity", expanded=False):
+        conductivity_mode = st.radio(
+            "Medium type",
+            ["Homogeneous medium", "Heterogeneous medium with zone"],
+        )
 
+        # Predefined sediment conductivities
+        sediment_options = {
+            "High conductivity (sand)": 5.0,
+            "Medium (silt)": 1.0,
+            "Low conductivity (clay)": 0.1,
+        }
 
-    st.sidebar.subheader("Conductivity")
-    conductivity_mode = st.sidebar.radio(
-        "Medium type",
-        ["Homogeneous medium", "Heterogeneous medium with zone"],
-    )
+        # Background conductivity selection (sediment types or custom)
+        st.markdown("**Background conductivity**")
+        bg_choice = st.radio(
+            "Background type",
+            ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
+            index=1,
+        )
+        if bg_choice == "Custom":
+            background_k = st.slider(
+                "Background conductivity K (m/day)", min_value=0.1, max_value=5.0, value=1.0, step=0.1
+            )
+        else:
+            background_k = sediment_options[bg_choice]
 
+    # Color mapping for sediments (used in previews)
+    bg_color_map = {
+        "High conductivity (sand)": "#fff7b2",  # pale yellow
+        "Medium (silt)": "#dcdcdc",            # light gray
+        "Low conductivity (clay)": "#4a4a4a",  # dark gray
+        "Custom": "#ffffff",                   # white
+    }
+    bg_color = bg_color_map.get(bg_choice, "#ffffff")
+
+    # If homogeneous medium is selected, show a single background preview
+    if conductivity_mode == "Homogeneous medium":
+        aspect_ratio = ny / nx
+        preview_width = 350
+        preview_height = int(preview_width * aspect_ratio)
+
+        bg_grid = np.zeros((ny, nx))
+        fig_bg = go.Figure(
+            data=go.Heatmap(
+                z=bg_grid,
+                colorscale=[[0, bg_color], [1, bg_color]],
+                showscale=False,
+                hovertemplate="Background: %{x}, %{y}<extra></extra>",
+            )
+        )
+        fig_bg.update_layout(
+            title="Background Preview",
+            xaxis_title="X",
+            yaxis_title="Y",
+            height=preview_height,
+            margin=dict(l=30, r=30, t=30, b=30),
+        )
+        st.sidebar.plotly_chart(fig_bg, use_container_width=True)
+
+    # Prepare defaults for zone
     zone_type = None
     selected_k = None
     zone_x_min = zone_x_max = zone_y_min = zone_y_max = 0
 
-    if conductivity_mode == "Homogeneous medium":
-        background_k = st.sidebar.slider(
-            "Homogeneous conductivity K (m/day)",
-            min_value=0.1,
-            max_value=5.0,
-            value=1.0,
-            step=0.1,
-        )
-    else:
-        st.sidebar.subheader("Subsurface Zones")
-        zone_type = st.sidebar.radio(
-            "Add/modify zone:",
-            ["High conductivity (sand)", "Low conductivity (clay)", "Medium (silt)"],
-        )
+        if conductivity_mode == "Heterogeneous medium with zone":
+            st.markdown("**Subsurface Zone**")
+            st.markdown("Choose sediment type for the zone or set custom K")
+            zone_choice = st.radio(
+                "Zone type",
+                ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
+                index=0,
+            )
 
-        zone_conductivities = {
-            "High conductivity (sand)": 5.0,
-            "Low conductivity (clay)": 0.1,
-            "Medium (silt)": 1.0,
+            if zone_choice == "Custom":
+                selected_k = st.slider(
+                    "Zone conductivity K (m/day)", min_value=0.1, max_value=5.0, value=2.0, step=0.1
+                )
+                zone_type = "Custom"
+            else:
+                selected_k = sediment_options[zone_choice]
+                zone_type = zone_choice
+
+            # Position inputs for the zone (same layout as before)
+            col1, col2 = st.columns(2)
+            with col1:
+                zone_x_min = st.number_input("X start", 0, nx, value=int(nx * 0.2))
+                zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
+            with col2:
+                zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
+                zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
+
+        # Combined preview (background + zone) with correct aspect ratio
+        combined_grid = np.zeros((ny, nx))
+        combined_grid[zone_y_min:zone_y_max, zone_x_min:zone_x_max] = 1
+        aspect_ratio = ny / nx
+        preview_width = 350  # Sidebar width
+        preview_height = int(preview_width * aspect_ratio)
+
+        zone_color_map = {
+            "High conductivity (sand)": "#fff7b2",
+            "Medium (silt)": "#dcdcdc",
+            "Low conductivity (clay)": "#4a4a4a",
+            "Custom": "#ffffff",
         }
-        selected_k = zone_conductivities[zone_type]
+        zone_color = zone_color_map.get(zone_type, "#ffffff")
 
-        background_k = st.sidebar.slider(
-            "Background conductivity K (m/day)",
-            min_value=0.1,
-            max_value=5.0,
-            value=1.0,
-            step=0.1,
+        fig_zone = go.Figure(
+            data=go.Heatmap(
+                z=combined_grid,
+                colorscale=[[0, bg_color], [1, zone_color]],
+                showscale=False,
+                hovertemplate="X: %{x}<br>Y: %{y}<br>Zone: %{z}<extra></extra>",
+            )
         )
+        fig_zone.update_layout(
+            title=f"Domain Preview (background + zone)",
+            xaxis_title="X",
+            yaxis_title="Y",
+            height=preview_height,
+            margin=dict(l=30, r=30, t=40, b=30),
+        )
+        st.sidebar.plotly_chart(fig_zone, use_container_width=True)
 
-        col1, col2 = st.sidebar.columns(2)
+    with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
+        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
+        
+        col1, col2 = st.columns(2)
         with col1:
-            zone_x_min = st.number_input("X start", 0, nx, value=int(nx * 0.2))
-            zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
+            recharge_x_min = st.number_input("X start", 0, nx - 1, value=int(nx * 0.3), key="rechg_x_min")
+            recharge_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.1), key="rechg_y_min")
         with col2:
-            zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
-            zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
-
-    st.sidebar.subheader("Recharge (Infiltration)")
-    recharge_rate = st.sidebar.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
-    recharge_x_min = st.sidebar.number_input("R: X start", 0, nx, value=int(nx * 0.3), key="rechg_x_min")
-    recharge_x_max = st.sidebar.number_input("R: X end", 1, nx, value=int(nx * 0.7), key="rechg_x_max")
-    recharge_y_min = st.sidebar.number_input("R: Y start", 0, ny - 1, value=int(ny * 0.1), key="rechg_y_min")
-    recharge_y_max = st.sidebar.number_input("R: Y end", 1, ny, value=int(ny * 0.3), key="rechg_y_max")
+            recharge_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.7), key="rechg_x_max")
+            recharge_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.3), key="rechg_y_max")
+        
+        # Recharge zone preview visualization with correct aspect ratio
+        recharge_grid = np.zeros((ny, nx))
+        recharge_grid[recharge_y_min:recharge_y_max, recharge_x_min:recharge_x_max] = recharge_rate
+        aspect_ratio = ny / nx
+        preview_width = 350  # Sidebar width
+        preview_height = int(preview_width * aspect_ratio)
+        
+        fig_recharge = go.Figure(
+            data=go.Heatmap(
+                z=recharge_grid,
+                colorscale="Blues",
+                showscale=False,
+                hovertemplate="X: %{x}<br>Y: %{y}<br>Rate: %{z:.4f} m/day<extra></extra>",
+            )
+        )
+        fig_recharge.update_layout(
+            title="Recharge Zone Preview",
+            xaxis_title="X",
+            yaxis_title="Y",
+            height=preview_height,
+            margin=dict(l=30, r=30, t=40, b=30),
+        )
+        st.plotly_chart(fig_recharge, use_container_width=True)
 
     if st.sidebar.button("Reset Model", type="secondary"):
         st.session_state.model = GroundwaterModel(nx=nx, ny=ny)
         st.session_state.solved = False
         st.rerun()
 
-    st.sidebar.subheader("Solver")
-    iterations = st.sidebar.slider("Max iterations", 10, 500, 100)
-    tolerance = st.sidebar.selectbox(
-        "Convergence tolerance",
-        [1e-2, 1e-3, 1e-4, 1e-5],
-        format_func=lambda x: f"{x:.0e}",
-    )
+    with st.sidebar.expander("Solver", expanded=False):
+        iterations = st.slider("Max iterations", 10, 500, 100)
+        tolerance = st.selectbox(
+            "Convergence tolerance",
+            [1e-2, 1e-3, 1e-4, 1e-5],
+            format_func=lambda x: f"{x:.0e}",
+        )
 
     current_controls = (
         nx,
@@ -278,6 +422,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Flow Magnitude",
             "Flow Vectors",
             "Change vs Previous Solve",
+            "Recharge Map", 
         ])
 
         with tabs[0]:
@@ -319,30 +464,60 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_mag, width="stretch")
 
         with tabs[3]:
-            fig_vec = go.Figure(data=go.Heatmap(z=q_mag, colorscale="Blues", colorbar=dict(title="Flow (m/day)")))
-            step = max(1, max(model.nx, model.ny) // 12)
+            # Use logarithmic scale for better gradient visualization
+            q_mag_display = np.log10(q_mag + 1e-8)  # Add small value to avoid log(0)
+            
+            fig_vec = go.Figure(data=go.Heatmap(
+                z=q_mag_display, 
+                colorscale="RdYlBu_r",
+                colorbar=dict(title="Flow log10(m/day)"),
+                hovertemplate="X: %{x}<br>Y: %{y}<br>Flow: %{customdata:.3e} m/day<extra></extra>",
+                customdata=q_mag
+            ))
+            
+            # Use finer grid for more arrows (every 2-3 cells instead of sparse)
+            step = max(1, max(model.nx, model.ny) // 20)
+            
             for i in range(0, model.ny, step):
                 for j in range(0, model.nx, step):
-                    if q_mag[i, j] > 1e-6:
-                        scale_factor = 3.0
-                        fig_vec.add_annotation(
-                            x=j,
-                            y=i,
-                            ax=j - qx[i, j] * scale_factor,
-                            ay=i - qy[i, j] * scale_factor,
-                            arrowhead=2,
-                            arrowsize=1.5,
-                            arrowwidth=2,
-                            arrowcolor="darkred",
-                            xref="x",
-                            yref="y",
-                            axref="x",
-                            ayref="y",
-                            showarrow=True,
-                        )
-            fig_vec.update_layout(title="Flow Direction and Magnitude", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            fig_vec = add_compass_and_invert_yaxis(fig_vec, model.ny, model.nx)
-            st.plotly_chart(fig_vec, width="stretch")
+                    mag = q_mag[i, j]
+                    
+                    # Scale arrow size based on flow magnitude
+                    # Normalize magnitude for arrow sizing
+                    q_max = np.max(q_mag)
+                    if q_max > 0:
+                        normalized_mag = mag / q_max
+                    else:
+                        normalized_mag = 0
+                    
+                    # Adaptive scaling: larger for stronger flows
+                    scale_factor = 2.5 + 3.5 * normalized_mag  # Range 2.5 to 6.0
+                    arrow_width = max(0.5, 3.0 * normalized_mag)  # Range 0.5 to 3.0
+                    
+                    fig_vec.add_annotation(
+                        x=j,
+                        y=i,
+                        ax=j - qx[i, j] * scale_factor,
+                        ay=i - qy[i, j] * scale_factor,
+                        arrowhead=2,
+                        arrowsize=1.5,
+                        arrowwidth=arrow_width,
+                        arrowcolor="darkred",
+                        xref="x",
+                        yref="y",
+                        axref="x",
+                        ayref="y",
+                        showarrow=True,
+                        opacity=0.7
+                    )
+            
+            fig_vec.update_layout(
+                title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
+                xaxis_title="X (cells)",
+                yaxis_title="Y (cells)",
+                height=550
+            )
+            st.plotly_chart(fig_vec, use_container_width=True)
 
         with tabs[4]:
             if has_previous:
@@ -365,6 +540,13 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.plotly_chart(fig_flow_delta, width="stretch")
             else:
                 st.info("Solve at least twice with different inputs to see change maps.")
+        
+        with tabs[5]:
+            recharge_map = np.zeros_like(model.head)
+            recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
+            fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
+            st.plotly_chart(fig_recharge, use_container_width=True)    
 
 
 if __name__ == "__main__":
