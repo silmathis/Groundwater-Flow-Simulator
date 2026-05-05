@@ -23,10 +23,11 @@ print("\n1b. Testing backend service layer...")
 service_result = run_simulation({
     "nx": 30,
     "ny": 20,
-    "head_north": 15.0,
-    "head_south": 5.0,
-    "head_west": 10.0,
-    "head_east": 10.0,
+    "point_sources": [
+        {"x": 8, "y": 10, "h": 18.0},
+        {"x": 22, "y": 10, "h": 6.0},
+    ],
+    "conductivity_mode": "Heterogeneous medium with zone",
     "background_k": 1.0,
     "zone_x_min": 5,
     "zone_x_max": 20,
@@ -43,11 +44,11 @@ service_result = run_simulation({
 })
 print(f"   [OK] Backend returned head shape: {service_result['model'].head.shape}")
 
-# Set boundary conditions
-print("\n2. Setting boundary conditions...")
-model.head_north = 15.0
-model.head_south = 5.0
-print(f"   [OK] North: {model.head_north} m, South: {model.head_south} m")
+# Set point sources
+print("\n2. Setting point sources...")
+model.set_point_source(1, 10, 20, 18.0)
+model.set_point_source(2, 40, 20, 6.0)
+print("   [OK] Two fixed-head point sources set")
 
 # Add zones
 print("\n3. Adding subsurface zones...")

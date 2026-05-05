@@ -16,7 +16,7 @@ class GroundwaterModel:
     
     The model solves a simplified version of the groundwater flow equation
     using finite differences on a regular 2D grid. Users can define zones
-    with different hydraulic conductivity values and set boundary conditions.
+    with different hydraulic conductivity values and fixed-head point sources.
     """
     
     def __init__(self, nx: int = 50, ny: int = 50, cell_size: float = 10.0):
@@ -43,24 +43,58 @@ class GroundwaterModel:
         self.head = np.ones((ny, nx)) * 10.0  # m (initial)
         self.head_initial = self.head.copy()
         
-        # Boundary conditions (fixed head at edges)
-        self.head_north = 30.0  # m
-        self.head_south = 0.0   # m
-        self.head_east = 0.0   # m
-        self.head_west = 0.0   # m
+        # Point sources with fixed hydraulic head.
+        # Each point is (x, y, head_value), or None if not set.
+        self.max_point_sources = 6
+        self.point_sources = [None] * self.max_point_sources
+
+        # Optional fixed-head boundary conditions.
+        self.use_boundary_conditions = False
+        self.head_north = 30.0
+        self.head_south = 0.0
+        self.head_east = 0.0
+        self.head_west = 0.0
 
         self._initialize_head()
 
     def _initialize_head(self):
-        """Initialize the head field from the current boundary conditions."""
-        boundary_mean = np.mean([
-            self.head_north,
-            self.head_south,
-            self.head_east,
-            self.head_west,
-        ])
-        self.head = np.ones((self.ny, self.nx)) * boundary_mean
+        """Initialize the head field from a neutral starting condition."""
+        self.head = np.ones((self.ny, self.nx)) * 10.0
         self.head_initial = self.head.copy()
+
+    def _active_point_sources(self):
+        """Return active point sources as (x, y, head_value) tuples."""
+        return [src for src in self.point_sources if src is not None]
+
+    def _apply_point_sources(self):
+        """Apply fixed-head values for all active point sources."""
+        for x, y, h in self._active_point_sources():
+            self.head[y, x] = h
+
+    def _apply_boundary_conditions(self):
+        """Apply fixed-head boundary values when the option is enabled."""
+        if not self.use_boundary_conditions:
+            return
+
+        self.head[0, :] = self.head_north
+        self.head[-1, :] = self.head_south
+        self.head[:, 0] = self.head_west
+        self.head[:, -1] = self.head_east
+
+    def _apply_edge_conditions(self):
+        """Apply the currently selected edge conditions."""
+        if self.use_boundary_conditions:
+            self._apply_boundary_conditions()
+        else:
+            # No-flow boundaries: copy adjacent interior values.
+            self.head[0, 1:-1] = self.head[1, 1:-1]
+            self.head[-1, 1:-1] = self.head[-2, 1:-1]
+            self.head[1:-1, 0] = self.head[1:-1, 1]
+            self.head[1:-1, -1] = self.head[1:-1, -2]
+            self.head[0, 0] = self.head[1, 1]
+            self.head[0, -1] = self.head[1, -2]
+            self.head[-1, 0] = self.head[-2, 1]
+            self.head[-1, -1] = self.head[-2, -2]
     
     def set_zone(self, x_min: int, x_max: int, y_min: int, y_max: int, 
                  conductivity: float):
@@ -98,12 +132,44 @@ class GroundwaterModel:
         """
         self.recharge[y_min:y_max, x_min:x_max] = rate
     
+    def set_point_source(self, source_num: int, x: int, y: int, head_value: float):
+        """
+        Set a point source with fixed hydraulic head.
+        
+        Parameters
+        ----------
+        source_num : int
+            Point source number (1 to max_point_sources)
+        x : int
+            Column index (0 to nx-1)
+        y : int
+            Row index (0 to ny-1)
+        head_value : float
+            Fixed hydraulic head at this point (m)
+        """
+        if not 1 <= source_num <= self.max_point_sources:
+            raise ValueError(f"source_num must be between 1 and {self.max_point_sources}")
+        self.point_sources[source_num - 1] = (int(x), int(y), float(head_value))
+    
+    def clear_point_source(self, source_num: int):
+        """
+        Clear a point source.
+        
+        Parameters
+        ----------
+        source_num : int
+            Point source number (1 to max_point_sources)
+        """
+        if not 1 <= source_num <= self.max_point_sources:
+            raise ValueError(f"source_num must be between 1 and {self.max_point_sources}")
+        self.point_sources[source_num - 1] = None
+    
     def solve(self, iterations: int = 100, tolerance: float = 1e-3):
         """
         Solve the steady-state flow equation using iterative relaxation.
         
-        This uses a simple finite-difference approach with Dirichlet boundary
-        conditions (fixed head at edges).
+        This uses a simple finite-difference approach with fixed-head point
+        sources and either fixed-head or no-flow boundaries at the model edges.
         
         Parameters
         ----------
@@ -114,15 +180,12 @@ class GroundwaterModel:
         """
         # Start each solve from a clean field so previous runs do not leak in.
         self._initialize_head()
-
-        # Apply boundary conditions before the first update.
-        self.head[0, :] = self.head_north
-        self.head[-1, :] = self.head_south
-        self.head[:, 0] = self.head_west
-        self.head[:, -1] = self.head_east
+        self._apply_edge_conditions()
+        self._apply_point_sources()
         
         for iteration in range(iterations):
             head_old = self.head.copy()
+            point_source_cells = {(x, y) for x, y, _ in self._active_point_sources()}
             
             # Get conductivity at interior points and neighbors
             k = self.hydraulic_conductivity
@@ -131,6 +194,10 @@ class GroundwaterModel:
             # dh/dx and dh/dy approximated by centered differences
             for i in range(1, self.ny - 1):
                 for j in range(1, self.nx - 1):
+                    # Keep fixed-head point-source cells unchanged.
+                    if (j, i) in point_source_cells:
+                        continue  # Keep the fixed head value
+                    
                     # Harmonic mean conductivity approximation
                     k_center = k[i, j]
                     k_north = (k[i + 1, j] + k[i, j]) / 2
@@ -154,11 +221,10 @@ class GroundwaterModel:
                     
                     self.head[i, j] = (numerator / denominator) + 0.1 * source_term
             
-            # Apply boundary conditions
-            self.head[0, :] = self.head_north
-            self.head[-1, :] = self.head_south
-            self.head[:, 0] = self.head_west
-            self.head[:, -1] = self.head_east
+            self._apply_edge_conditions()
+
+            # Re-apply fixed-head point sources.
+            self._apply_point_sources()
             
             # Check convergence
             change = np.max(np.abs(self.head - head_old))

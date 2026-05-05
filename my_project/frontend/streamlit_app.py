@@ -66,19 +66,62 @@ It is **not** suitable for engineering predictions or real-world applications.
     ny = st.sidebar.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
 
     if nx != model.nx or ny != model.ny:
+        for idx in range(1, 7):
+            x_key = f"ps{idx}_x"
+            y_key = f"ps{idx}_y"
+            if x_key in st.session_state:
+                st.session_state[x_key] = min(max(int(st.session_state[x_key]), 0), nx)
+            if y_key in st.session_state:
+                st.session_state[y_key] = min(max(int(st.session_state[y_key]), 0), ny)
         st.session_state.model = GroundwaterModel(nx=nx, ny=ny)
         st.session_state.solved = False
         model = st.session_state.model
         st.rerun()
 
+    st.sidebar.subheader("Point Sources (Fixed Hydraulic Head)")
+    st.sidebar.caption("Coordinates for point sources are linked to the grid size selected above.")
+    point_source_count = st.sidebar.slider("Number of point sources", 1, 6, 2)
+
+    point_sources = []
+    for idx in range(1, point_source_count + 1):
+        default_x = int(round((idx / (point_source_count + 1)) * nx))
+        default_y = int(ny * 0.5)
+        default_h = 20.0 if idx % 2 else 5.0
+        with st.sidebar.expander(f"Point {idx}", expanded=idx <= 2):
+            x_val = st.number_input(f"P{idx}: X coord", min_value=0, value=default_x, step=1, key=f"ps{idx}_x")
+            y_val = st.number_input(f"P{idx}: Y coord", min_value=0, value=default_y, step=1, key=f"ps{idx}_y")
+            h_val = st.slider(f"P{idx}: Head (m)", 0.0, 30.0, default_h, step=0.5, key=f"ps{idx}_h")
+
+        x_coord = int(x_val)
+        y_coord = int(y_val)
+        if x_coord > nx:
+            st.sidebar.warning(f"Point {idx}: X coordinate exceeds grid width ({nx}). It will be clipped to {nx}.")
+            x_coord = nx
+        if y_coord > ny:
+            st.sidebar.warning(f"Point {idx}: Y coordinate exceeds grid height ({ny}). It will be clipped to {ny}.")
+            y_coord = ny
+
+        # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
+        point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
+
+
     st.sidebar.subheader("Boundary Conditions (Head in meters)")
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        head_north = st.slider("North (top)", 0.0, 30.0, 15.0, step=0.5)
-        head_south = st.slider("South (bottom)", 0.0, 30.0, 5.0, step=0.5)
-    with col2:
-        head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
-        head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
+    use_boundary_conditions = st.sidebar.checkbox("Use boundary conditions", value=False)
+
+    head_north = 15.0
+    head_south = 5.0
+    head_west = 10.0
+    head_east = 10.0
+
+    if use_boundary_conditions:
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            head_north = st.slider("North (top)", 0.0, 30.0, 15.0, step=0.5)
+            head_south = st.slider("South (bottom)", 0.0, 30.0, 5.0, step=0.5)
+        with col2:
+            head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
+            head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
+
 
     st.sidebar.subheader("Conductivity")
     conductivity_mode = st.sidebar.radio(
@@ -151,6 +194,9 @@ It is **not** suitable for engineering predictions or real-world applications.
     current_controls = (
         nx,
         ny,
+        point_source_count,
+        tuple((p["x"], p["y"], p["h"]) for p in point_sources),
+        use_boundary_conditions,
         head_north,
         head_south,
         head_west,
@@ -183,6 +229,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             config = {
                 "nx": nx,
                 "ny": ny,
+                "point_sources": point_sources,
+                "use_boundary_conditions": use_boundary_conditions,
                 "head_north": head_north,
                 "head_south": head_south,
                 "head_west": head_west,
