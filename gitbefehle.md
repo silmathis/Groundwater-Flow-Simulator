@@ -135,4 +135,4 @@ Wenn Git automatisches Mergen nicht kann:
 
 ---
 
-**Fragen?** Schau in die Git-Dokumentation oder frag im Team nach! 🚀
+**Fragen?** Schau in die Git-Dokumentation oder frag im Team nach! 
