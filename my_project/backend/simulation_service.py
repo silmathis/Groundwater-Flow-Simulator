@@ -7,10 +7,16 @@ def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
     """Run one groundwater simulation and return data for the frontend."""
     model = GroundwaterModel(nx=config["nx"], ny=config["ny"])
 
-    model.head_north = config["head_north"]
-    model.head_south = config["head_south"]
-    model.head_west = config["head_west"]
-    model.head_east = config["head_east"]
+    model.use_boundary_conditions = config.get("use_boundary_conditions", False)
+    if model.use_boundary_conditions:
+        model.head_north = config["head_north"]
+        model.head_south = config["head_south"]
+        model.head_west = config["head_west"]
+        model.head_east = config["head_east"]
+
+    # Apply fixed-head point sources (up to model.max_point_sources).
+    for idx, source in enumerate(config.get("point_sources", [])[: model.max_point_sources], start=1):
+        model.set_point_source(idx, source["x"], source["y"], source["h"])
 
     model.set_background_conductivity(config["background_k"])
 
