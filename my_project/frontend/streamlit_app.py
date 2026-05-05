@@ -220,12 +220,6 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     st.sidebar.subheader("Recharge (Infiltration)")
     recharge_rate = st.sidebar.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
-<<<<<<< HEAD
-    recharge_x_min = st.sidebar.number_input("R: X start", 0, nx, value=int(nx * 0.3), key="rechg_x_min")
-    recharge_x_max = st.sidebar.number_input("R: X end", 1, nx, value=int(nx * 0.7), key="rechg_x_max")
-    recharge_y_min = st.sidebar.number_input("R: Y start", 0, ny - 1, value=int(ny * 0.1), key="rechg_y_min")
-    recharge_y_max = st.sidebar.number_input("R: Y end", 1, ny, value=int(ny * 0.3), key="rechg_y_max")
-=======
     
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -258,7 +252,6 @@ It is **not** suitable for engineering predictions or real-world applications.
         margin=dict(l=30, r=30, t=40, b=30),
     )
     st.sidebar.plotly_chart(fig_recharge, use_container_width=True)
->>>>>>> Mattia
 
     if st.sidebar.button("Reset Model", type="secondary"):
         st.session_state.model = GroundwaterModel(nx=nx, ny=ny)
@@ -417,28 +410,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             
             for i in range(0, model.ny, step):
                 for j in range(0, model.nx, step):
-<<<<<<< HEAD
-                    if q_mag[i, j] > 1e-6:
-                        scale_factor = 3.0
-                        fig_vec.add_annotation(
-                            x=j,
-                            y=i,
-                            ax=j - qx[i, j] * scale_factor,
-                            ay=i - qy[i, j] * scale_factor,
-                            arrowhead=2,
-                            arrowsize=1.5,
-                            arrowwidth=2,
-                            arrowcolor="darkred",
-                            xref="x",
-                            yref="y",
-                            axref="x",
-                            ayref="y",
-                            showarrow=True,
-                        )
-            fig_vec.update_layout(title="Flow Direction and Magnitude", xaxis_title="X (cells)", yaxis_title="Y (cells)", height=500)
-            fig_vec = add_compass_and_invert_yaxis(fig_vec, model.ny, model.nx)
-            st.plotly_chart(fig_vec, width="stretch")
-=======
                     mag = q_mag[i, j]
                     
                     # Scale arrow size based on flow magnitude
@@ -477,7 +448,6 @@ It is **not** suitable for engineering predictions or real-world applications.
                 height=550
             )
             st.plotly_chart(fig_vec, use_container_width=True)
->>>>>>> Mattia
 
         with tabs[4]:
             if has_previous:
