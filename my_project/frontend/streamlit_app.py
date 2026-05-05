@@ -120,7 +120,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.rerun()
 
     with st.sidebar.expander("Hydraulic Head", expanded=False):
-        with st.sidebar.expander("Point Sources", expanded=False):
+        with st.expander("Point Sources", expanded=False):
             st.caption("Coordinates for point sources are linked to the grid size selected above.")
             point_source_count = st.slider("Number of point sources", 1, 6, 2)
 
@@ -129,7 +129,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 default_x = int(round((idx / (point_source_count + 1)) * nx))
                 default_y = int(ny * 0.5)
                 default_h = 20.0 if idx % 2 else 5.0
-                with st.sidebar.expander(f"Point {idx}", expanded=False):
+                with st.expander(f"Point {idx}", expanded=False):
                     x_val = st.number_input(f"P{idx}: X coord", min_value=0, value=default_x, step=1, key=f"ps{idx}_x")
                     y_val = st.number_input(f"P{idx}: Y coord", min_value=0, value=default_y, step=1, key=f"ps{idx}_y")
                     h_val = st.slider(f"P{idx}: Head (m)", 0.0, 30.0, default_h, step=0.5, key=f"ps{idx}_h")
@@ -137,16 +137,16 @@ It is **not** suitable for engineering predictions or real-world applications.
                 x_coord = int(x_val)
                 y_coord = int(y_val)
                 if x_coord > nx:
-                    st.sidebar.warning(f"Point {idx}: X coordinate exceeds grid width ({nx}). It will be clipped to {nx}.")
+                    st.warning(f"Point {idx}: X coordinate exceeds grid width ({nx}). It will be clipped to {nx}.")
                     x_coord = nx
                 if y_coord > ny:
-                    st.sidebar.warning(f"Point {idx}: Y coordinate exceeds grid height ({ny}). It will be clipped to {ny}.")
+                    st.warning(f"Point {idx}: Y coordinate exceeds grid height ({ny}). It will be clipped to {ny}.")
                     y_coord = ny
 
                 # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
                 point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
 
-        with st.sidebar.expander("Boundary Conditions", expanded=False):
+        with st.expander("Boundary Conditions", expanded=False):
             use_boundary_conditions = st.checkbox("Use boundary conditions", value=False)
 
             head_north = 15.0
