@@ -162,6 +162,39 @@ It is **not** suitable for engineering predictions or real-world applications.
     else:
         background_k = sediment_options[bg_choice]
 
+    # Color mapping for sediments (used in previews)
+    bg_color_map = {
+        "High conductivity (sand)": "#fff7b2",  # pale yellow
+        "Medium (silt)": "#dcdcdc",            # light gray
+        "Low conductivity (clay)": "#4a4a4a",  # dark gray
+        "Custom": "#ffffff",                   # white
+    }
+    bg_color = bg_color_map.get(bg_choice, "#ffffff")
+
+    # If homogeneous medium is selected, show a single background preview
+    if conductivity_mode == "Homogeneous medium":
+        aspect_ratio = ny / nx
+        preview_width = 350
+        preview_height = int(preview_width * aspect_ratio)
+
+        bg_grid = np.zeros((ny, nx))
+        fig_bg = go.Figure(
+            data=go.Heatmap(
+                z=bg_grid,
+                colorscale=[[0, bg_color], [1, bg_color]],
+                showscale=False,
+                hovertemplate="Background: %{x}, %{y}<extra></extra>",
+            )
+        )
+        fig_bg.update_layout(
+            title="Background Preview",
+            xaxis_title="X",
+            yaxis_title="Y",
+            height=preview_height,
+            margin=dict(l=30, r=30, t=30, b=30),
+        )
+        st.sidebar.plotly_chart(fig_bg, use_container_width=True)
+
     # Prepare defaults for zone
     zone_type = None
     selected_k = None
@@ -194,23 +227,31 @@ It is **not** suitable for engineering predictions or real-world applications.
             zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
             zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
 
-        # Zone preview visualization with correct aspect ratio
-        zone_grid = np.zeros((ny, nx))
-        zone_grid[zone_y_min:zone_y_max, zone_x_min:zone_x_max] = 1
+        # Combined preview (background + zone) with correct aspect ratio
+        combined_grid = np.zeros((ny, nx))
+        combined_grid[zone_y_min:zone_y_max, zone_x_min:zone_x_max] = 1
         aspect_ratio = ny / nx
         preview_width = 350  # Sidebar width
         preview_height = int(preview_width * aspect_ratio)
 
+        zone_color_map = {
+            "High conductivity (sand)": "#fff7b2",
+            "Medium (silt)": "#dcdcdc",
+            "Low conductivity (clay)": "#4a4a4a",
+            "Custom": "#ffffff",
+        }
+        zone_color = zone_color_map.get(zone_type, "#ffffff")
+
         fig_zone = go.Figure(
             data=go.Heatmap(
-                z=zone_grid,
-                colorscale=["white", "darkred"],
+                z=combined_grid,
+                colorscale=[[0, bg_color], [1, zone_color]],
                 showscale=False,
-                hovertemplate="X: %{x}<br>Y: %{y}<br>In zone: %{z}<extra></extra>",
+                hovertemplate="X: %{x}<br>Y: %{y}<br>Zone: %{z}<extra></extra>",
             )
         )
         fig_zone.update_layout(
-            title=f"Zone Preview: {zone_type}",
+            title=f"Domain Preview (background + zone)",
             xaxis_title="X",
             yaxis_title="Y",
             height=preview_height,
