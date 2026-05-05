@@ -18,3 +18,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["my_project", "my_project.backend", "my_project.frontend"]
+
+[tool.poetry]
+packages = [{include = "my_project"}]
