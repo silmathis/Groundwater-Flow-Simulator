@@ -20,4 +20,7 @@ dependencies = [
 packages = ["my_project", "my_project.backend", "my_project.frontend"]
 
 [tool.poetry]
+name = "groundwater-simulator"
+version = "0.1.0"
+description = "Interactive 2D groundwater flow simulation tool for education"
 packages = [{include = "my_project"}]
