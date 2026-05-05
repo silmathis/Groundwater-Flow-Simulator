@@ -20,22 +20,6 @@ This simulator allows students and educators to interactively explore how hydrau
 
 ## Getting Started
 
-### ⚡ Activate Virtual Environment (Every New Terminal Session)
-
-**Windows (Git Bash / PowerShell):**
-```bash
-source .venv/Scripts/activate
-```
-
-**macOS / Linux:**
-```bash
-source .venv/bin/activate
-```
-
-✅ Success: `(.venv)` should appear at the start of your terminal prompt.
-
----
-
 ### Installation
 
 `pip install -e .` installs this project into the currently active Python environment.
@@ -65,6 +49,7 @@ Notes:
 - Use `python3` on systems where `python` maps to Python 2 or is not available. For example, `python3 -m venv .venv` and `python3 -m pip install -e .` on macOS.
 - If `pip install -e .` fails with `command not found`, prefer the `python -m pip ...` form shown above.
 - If activation fails, verify you are in the repository root and that the `.venv` directory was created. On macOS you may need to allow script execution or use a different shell (e.g., `zsh`).
+- **Remember:** Every new terminal session requires activation! Use `source .venv/Scripts/activate` (Windows) or `source .venv/bin/activate` (macOS/Linux) to activate the virtual environment again.
 
 ### Running the App
 
