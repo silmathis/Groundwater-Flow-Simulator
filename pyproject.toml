@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groundwater-simulator"
+version = "0.1.0"
+description = "Interactive 2D groundwater flow simulation tool for education"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "streamlit>=1.28",
+    "plotly>=5.17"
+]
+
+[tool.setuptools]
+packages = ["my_project", "my_project.backend", "my_project.frontend"]
+
+[tool.poetry]
+name = "groundwater-simulator"
+version = "0.1.0"
+description = "Interactive 2D groundwater flow simulation tool for education"
+package-mode = false
