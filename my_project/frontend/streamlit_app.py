@@ -22,16 +22,16 @@ def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
 
     # North (oben mittig)
     fig.add_annotation(x=x_max / 2, y=-pad, text="<b>N</b>", xanchor="center", **compass_props)
-
+    
     # South (unten mittig)
     fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
-
-    # Ost/East (rechts mittig)
-    fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>O</b>", yanchor="middle", **compass_props)
-
+    
+    # East (rechts mittig)
+    fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>E</b>", yanchor="middle", **compass_props)
+    
     # West (links mittig)
     fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
-
+    
     return fig
 
 
@@ -41,47 +41,6 @@ def main() -> None:
         page_icon=None,
         layout="wide",
         initial_sidebar_state="expanded",
-    )
-
-    st.markdown(
-        """
-        <style>
-            section[data-testid="stSidebar"] {
-                min-width: 380px;
-                max-width: 380px;
-                width: 380px;
-            }
-
-            section[data-testid="stSidebar"][aria-expanded="false"] {
-                min-width: 0 !important;
-                max-width: 0 !important;
-                width: 0 !important;
-                overflow: hidden !important;
-            }
-
-            div[data-testid="stSidebarResizer"] {
-                display: none;
-            }
-
-            section[data-testid="stSidebar"][aria-expanded="false"] ~ div main {
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-
-            button[data-testid="collapsedControl"] {
-                position: fixed !important;
-                left: 0.25rem !important;
-                top: 0.75rem !important;
-                right: auto !important;
-                z-index: 1000 !important;
-            }
-
-            div[data-testid="stMainBlockContainer"] {
-                max-width: none !important;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
     )
 
     st.markdown(
@@ -137,6 +96,7 @@ It is **not** suitable for engineering predictions or real-world applications.
     if "model" not in st.session_state:
         st.session_state.model = GroundwaterModel(nx=60, ny=40)
         st.session_state.solved = False
+        st.session_state.previous_result = None
         st.session_state.current_result = None
 
     model = st.session_state.model
@@ -149,17 +109,11 @@ It is **not** suitable for engineering predictions or real-world applications.
     st.sidebar.header("Model Parameters")
 
     with st.sidebar.expander("Domain Size", expanded=False):
+        st.caption("Sets the simulation grid’s overall size and resolution. Larger grids reveal finer details but require more computation time.")
         nx = st.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
         ny = st.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
 
     if nx != model.nx or ny != model.ny:
-        for idx in range(1, 7):
-            x_key = f"ps{idx}_x"
-            y_key = f"ps{idx}_y"
-            if x_key in st.session_state:
-                st.session_state[x_key] = min(max(int(st.session_state[x_key]), 0), nx)
-            if y_key in st.session_state:
-                st.session_state[y_key] = min(max(int(st.session_state[y_key]), 0), ny)
         for idx in range(1, 7):
             x_key = f"ps{idx}_x"
             y_key = f"ps{idx}_y"
@@ -173,10 +127,10 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.rerun()
 
     with st.sidebar.expander("Hydraulic Head", expanded=False):
+        st.caption("Set the hydraulic head values. Point sources inject or extract water at specified locations, while boundary conditions can be applied at the edges of the domain to force inflow or outflow.")
         with st.expander("Point Sources", expanded=False):
-            st.caption("Coordinates for point sources are linked to the grid size selected above.")
+            st.caption("Coordinates of the point sources cannot be at the boundaries of the grid.")
             point_source_count = st.slider("Number of point sources", 1, 6, 2)
-
             point_sources = []
             for idx in range(1, point_source_count + 1):
                 default_x = int(round((idx / (point_source_count + 1)) * nx))
@@ -217,6 +171,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                     head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
 
     with st.sidebar.expander("Conductivity", expanded=False):
+        st.caption("Define the conductivity distribution across the domain.")
         conductivity_mode = st.radio(
             "Medium type",
             ["Homogeneous medium", "Heterogeneous medium with zone"],
@@ -344,7 +299,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_zone, use_container_width=True)
 
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
-        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.0, step=0.001)
+        st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone.")
+        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
         
         col1, col2 = st.columns(2)
         with col1:
@@ -395,6 +351,10 @@ It is **not** suitable for engineering predictions or real-world applications.
         )
 
     current_controls = (
+        nx,
+        ny,
+        point_source_count,
+        tuple((p["x"], p["y"], p["h"]) for p in point_sources),
         use_boundary_conditions,
         head_north,
         head_south,
@@ -449,6 +409,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "iterations": iterations,
                 "tolerance": tolerance,
             }
+            st.session_state.previous_result = st.session_state.current_result
             result = run_simulation(config)
             st.session_state.current_result = result
             st.session_state.model = result["model"]
@@ -461,6 +422,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         qy = st.session_state.current_result["qy"]
         q_mag = st.session_state.current_result["q_mag"]
         summary = st.session_state.current_result["summary"]
+        previous_result = st.session_state.get("previous_result")
+        has_previous = previous_result is not None and previous_result["model"].head.shape == model.head.shape
 
         with col_info:
             st.subheader("Results")
@@ -473,6 +436,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
+            "Change vs Previous Solve",
             "Recharge Map", 
         ])
 
@@ -589,6 +553,28 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_vec, use_container_width=True)
 
         with tabs[4]:
+            if has_previous:
+                prev_model = previous_result["model"]
+                prev_q_mag = previous_result["q_mag"]
+                head_delta = model.head - prev_model.head
+                flow_delta = q_mag - prev_q_mag
+
+                st.metric("max |Delta head|", f"{np.max(np.abs(head_delta)):.3f} m")
+                st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
+
+                fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
+                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
+                st.plotly_chart(fig_head_delta, width="stretch")
+
+                fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
+                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
+                st.plotly_chart(fig_flow_delta, width="stretch")
+            else:
+                st.info("Solve at least twice with different inputs to see change maps.")
+        
+        with tabs[5]:
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
             fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
