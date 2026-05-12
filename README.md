@@ -53,14 +53,28 @@ Notes:
 
 ### Running the App
 
+After activating the virtual environment:
+
 ```bash
 streamlit run app.py
 ```
 
-If the app is already running inside the virtual environment, you can also use:
+Or using Python directly from the activated environment:
 
 ```bash
 python -m streamlit run app.py
+```
+
+**Without activation** (directly in the repository root):
+
+Windows (Git Bash):
+```bash
+./.venv/Scripts/python.exe -m streamlit run app.py
+```
+
+macOS / Linux:
+```bash
+./.venv/bin/python -m streamlit run app.py
 ```
 
 The app will open in your web browser at `http://localhost:8501`.
