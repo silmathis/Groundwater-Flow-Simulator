@@ -96,7 +96,6 @@ It is **not** suitable for engineering predictions or real-world applications.
     if "model" not in st.session_state:
         st.session_state.model = GroundwaterModel(nx=60, ny=40)
         st.session_state.solved = False
-        st.session_state.previous_result = None
         st.session_state.current_result = None
 
     model = st.session_state.model
@@ -405,7 +404,6 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "iterations": iterations,
                 "tolerance": tolerance,
             }
-            st.session_state.previous_result = st.session_state.current_result
             result = run_simulation(config)
             st.session_state.current_result = result
             st.session_state.model = result["model"]
@@ -418,8 +416,6 @@ It is **not** suitable for engineering predictions or real-world applications.
         qy = st.session_state.current_result["qy"]
         q_mag = st.session_state.current_result["q_mag"]
         summary = st.session_state.current_result["summary"]
-        previous_result = st.session_state.get("previous_result")
-        has_previous = previous_result is not None and previous_result["model"].head.shape == model.head.shape
 
         with col_info:
             st.subheader("Results")
@@ -432,7 +428,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
-            "Change vs Previous Solve",
             "Recharge Map", 
         ])
 
@@ -540,28 +535,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_vec, use_container_width=True)
 
         with tabs[4]:
-            if has_previous:
-                prev_model = previous_result["model"]
-                prev_q_mag = previous_result["q_mag"]
-                head_delta = model.head - prev_model.head
-                flow_delta = q_mag - prev_q_mag
-
-                st.metric("max |Delta head|", f"{np.max(np.abs(head_delta)):.3f} m")
-                st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
-
-                fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
-                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
-                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
-                st.plotly_chart(fig_head_delta, width="stretch")
-
-                fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
-                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
-                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
-                st.plotly_chart(fig_flow_delta, width="stretch")
-            else:
-                st.info("Solve at least twice with different inputs to see change maps.")
-        
-        with tabs[5]:
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
             fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
