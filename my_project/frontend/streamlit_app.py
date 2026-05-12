@@ -434,7 +434,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_zone, use_container_width=True)
 
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
-        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
+        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.0, step=0.001)
         
         col1, col2 = st.columns(2)
         with col1:

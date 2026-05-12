@@ -40,7 +40,7 @@ class GroundwaterModel:
         # Initialize fields
         self.hydraulic_conductivity = np.ones((ny, nx)) * 1.0  # m/day
         self.recharge = np.zeros((ny, nx))  # m/day
-        self.head = np.ones((ny, nx)) * 10.0  # m (initial)
+        self.head = np.ones((ny, nx)) * 0.0  # m (initial)
         self.head_initial = self.head.copy()
         
         # Point sources with fixed hydraulic head.
@@ -59,7 +59,7 @@ class GroundwaterModel:
 
     def _initialize_head(self):
         """Initialize the head field from a neutral starting condition."""
-        self.head = np.ones((self.ny, self.nx)) * 10.0
+        self.head = np.ones((self.ny, self.nx)) * 0.0
         self.head_initial = self.head.copy()
 
     def _active_point_sources(self):
