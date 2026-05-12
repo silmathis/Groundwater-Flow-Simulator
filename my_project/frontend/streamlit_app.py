@@ -10,7 +10,7 @@ from my_project.groundwater_model import GroundwaterModel
 
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
-    Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
+    Add compass directions (N, S, E, W) and invert y-axis for proper geographic orientation.
     North should be at the top, South at the bottom.
     """
     # Invert y-axis so North (index 0) is at top
@@ -26,8 +26,8 @@ def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     # South (unten mittig)
     fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
     
-    # Ost/East (rechts mittig)
-    fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>O</b>", yanchor="middle", **compass_props)
+    # East (rechts mittig)
+    fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>E</b>", yanchor="middle", **compass_props)
     
     # West (links mittig)
     fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
@@ -109,6 +109,7 @@ It is **not** suitable for engineering predictions or real-world applications.
     st.sidebar.header("Model Parameters")
 
     with st.sidebar.expander("Domain Size", expanded=False):
+        st.caption("Sets the simulation grid’s overall size and resolution. Larger grids reveal finer details but require more computation time.")
         nx = st.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
         ny = st.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
 
@@ -126,10 +127,10 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.rerun()
 
     with st.sidebar.expander("Hydraulic Head", expanded=False):
+        st.caption("Set the hydraulic head values. Point sources inject or extract water at specified locations, while boundary conditions can be applied at the edges of the domain to force inflow or outflow.")
         with st.expander("Point Sources", expanded=False):
-            st.caption("Coordinates for point sources are linked to the grid size selected above.")
+            st.caption("Coordinates of the point sources cannot be at the boundaries of the grid.")
             point_source_count = st.slider("Number of point sources", 1, 6, 2)
-
             point_sources = []
             for idx in range(1, point_source_count + 1):
                 default_x = int(round((idx / (point_source_count + 1)) * nx))
@@ -170,6 +171,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                     head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
 
     with st.sidebar.expander("Conductivity", expanded=False):
+        st.caption("Define the conductivity distribution across the domain.")
         conductivity_mode = st.radio(
             "Medium type",
             ["Homogeneous medium", "Heterogeneous medium with zone"],
@@ -297,6 +299,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_zone, use_container_width=True)
 
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
+        st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone.")
         recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
         
         col1, col2 = st.columns(2)
