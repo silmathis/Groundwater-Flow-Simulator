@@ -9,34 +9,29 @@ from my_project.groundwater_model import GroundwaterModel
 
 
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
-
-def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
-    Add compass directions (N, S, E, W) and invert y-axis for proper geographic orientation.
+    Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
     North should be at the top, South at the bottom.
     """
     # Invert y-axis so North (index 0) is at top
     fig.update_yaxes(autorange="reversed")
-    
+
     # Add compass annotations
     compass_props = dict(showarrow=False, font=dict(size=14, color="black"), 
                          bgcolor="rgba(255,255,255,0.7)", borderpad=4)
-    
+
     # North (oben mittig)
     fig.add_annotation(x=x_max / 2, y=-pad, text="<b>N</b>", xanchor="center", **compass_props)
-    fig.add_annotation(x=x_max / 2, y=-pad, text="<b>N</b>", xanchor="center", **compass_props)
-    
+
     # South (unten mittig)
     fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
-    fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
-    
+
     # Ost/East (rechts mittig)
     fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>O</b>", yanchor="middle", **compass_props)
-    
+
     # West (links mittig)
     fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
-    fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
-    
+
     return fig
 
 
@@ -261,92 +256,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         zone_type = None
         selected_k = None
         zone_x_min = zone_x_max = zone_y_min = zone_y_max = 0
-        # Predefined sediment conductivities
-        sediment_options = {
-            "High conductivity (sand)": 5.0,
-            "Medium (silt)": 1.0,
-            "Low conductivity (clay)": 0.1,
-        }
 
-        # Background conductivity selection (sediment types or custom)
-        st.markdown("**Background conductivity**")
-        bg_choice = st.radio(
-            "Background type",
-            ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
-            index=1,
-        )
-        if bg_choice == "Custom":
-            background_k = st.slider(
-                "Background conductivity K (m/day)", min_value=0.1, max_value=5.0, value=1.0, step=0.1
-            )
-        else:
-            background_k = sediment_options[bg_choice]
-
-        # Color mapping for sediments (used in previews)
-        bg_color_map = {
-            "High conductivity (sand)": "#fff7b2",  # pale yellow
-            "Medium (silt)": "#dcdcdc",            # light gray
-            "Low conductivity (clay)": "#4a4a4a",  # dark gray
-            "Custom": "#ffffff",                   # white
-        }
-        bg_color = bg_color_map.get(bg_choice, "#ffffff")
-
-        # Prepare defaults for zone
-        zone_type = None
-        selected_k = None
-        zone_x_min = zone_x_max = zone_y_min = zone_y_max = 0
-
-        if conductivity_mode == "Homogeneous medium":
-            aspect_ratio = ny / nx
-            preview_width = 350
-            preview_height = int(preview_width * aspect_ratio)
-
-            bg_grid = np.zeros((ny, nx))
-            fig_bg = go.Figure(
-                data=go.Heatmap(
-                    z=bg_grid,
-                    x=np.arange(nx) * cell_size,
-                    y=np.arange(ny) * cell_size,
-                    colorscale=[[0, bg_color], [1, bg_color]],
-                    showscale=False,
-                    hovertemplate="Background: x=%{x:.1f} m<br>y=%{y:.1f} m<extra></extra>",
-                )
-            )
-            fig_bg.update_layout(
-                title="Background Preview",
-                xaxis_title="X (m)",
-                yaxis_title="Y (m)",
-                height=preview_height,
-                margin=dict(l=30, r=30, t=30, b=30),
-            )
-            st.plotly_chart(fig_bg, use_container_width=True)
-
-        if conductivity_mode == "Heterogeneous medium with zone":
-            st.markdown("**Subsurface Zone**")
-            st.markdown("Choose sediment type for the zone or set custom K")
-            zone_choice = st.radio(
-                "Zone type",
-                ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
-                index=0,
-            )
-
-            if zone_choice == "Custom":
-                selected_k = st.slider(
-                    "Zone conductivity K (m/day)", min_value=0.1, max_value=5.0, value=2.0, step=0.1
-                )
-                zone_type = "Custom"
-            else:
-                selected_k = sediment_options[zone_choice]
-                zone_type = zone_choice
-
-            # Position inputs for the zone (same layout as before)
-            col1, col2 = st.columns(2)
-            with col1:
-                zone_x_min = st.number_input("X start", 0, nx, value=int(nx * 0.2))
-                zone_y_min = st.number_input("Y start", 0, ny - 1, value=int(ny * 0.3))
-            with col2:
-                zone_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.8))
-                zone_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.7))
         if conductivity_mode == "Homogeneous medium":
             aspect_ratio = ny / nx
             preview_width = 350
@@ -476,28 +386,15 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.rerun()
 
     with st.sidebar.expander("Solver", expanded=False):
-        iterations = st.slider("Max iterations", 10, 500, 100)
+        iterations = st.slider("Max iterations", 10, 500, 100, key="solver_iterations")
         tolerance = st.selectbox(
             "Convergence tolerance",
             [1e-2, 1e-3, 1e-4, 1e-5],
             format_func=lambda x: f"{x:.0e}",
-        )
-    with st.sidebar.expander("Solver", expanded=False):
-        iterations = st.slider("Max iterations", 10, 500, 100)
-        tolerance = st.selectbox(
-            "Convergence tolerance",
-            [1e-2, 1e-3, 1e-4, 1e-5],
-            format_func=lambda x: f"{x:.0e}",
+            key="solver_tolerance"
         )
 
     current_controls = (
-        nx,
-        ny,
-        point_source_count,
-        tuple((p["x"], p["y"], p["h"]) for p in point_sources),
-        use_boundary_conditions,
-        point_source_count,
-        tuple((p["x"], p["y"], p["h"]) for p in point_sources),
         use_boundary_conditions,
         head_north,
         head_south,
@@ -531,8 +428,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             config = {
                 "nx": nx,
                 "ny": ny,
-                "point_sources": point_sources,
-                "use_boundary_conditions": use_boundary_conditions,
                 "point_sources": point_sources,
                 "use_boundary_conditions": use_boundary_conditions,
                 "head_north": head_north,
@@ -572,14 +467,12 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
             st.metric("Head (max)", f"{summary['head_max']:.2f} m")
             st.metric("Max flow (m/day)", f"{summary['flow_max']:.3f}")
-            st.metric("Max flow (m/day)", f"{summary['flow_max']:.3f}")
 
         tabs = st.tabs([
             "Hydraulic Head",
             "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
-            "Recharge Map", 
             "Recharge Map", 
         ])
 
@@ -589,15 +482,11 @@ It is **not** suitable for engineering predictions or real-world applications.
                     z=model.head,
                     x=x_coords,
                     y=y_coords,
-                    x=x_coords,
-                    y=y_coords,
                     colorscale="jet",
                     colorbar=dict(title="Head (m)"),
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
-            fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, width="stretch")
@@ -608,14 +497,10 @@ It is **not** suitable for engineering predictions or real-world applications.
                     z=np.log10(model.hydraulic_conductivity),
                     x=x_coords,
                     y=y_coords,
-                    x=x_coords,
-                    y=y_coords,
                     colorscale="RdYlBu_r",
                     colorbar=dict(title="log10(K)"),
                 )
             )
-            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
-            fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
             fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             st.plotly_chart(fig_cond, width="stretch")
@@ -626,8 +511,6 @@ It is **not** suitable for engineering predictions or real-world applications.
                     z=q_mag,
                     x=x_coords,
                     y=y_coords,
-                    x=x_coords,
-                    y=y_coords,
                     colorscale="Plasma",
                     colorbar=dict(title="Flow (m/day)"),
                     contours=dict(coloring="heatmap"),
@@ -635,27 +518,9 @@ It is **not** suitable for engineering predictions or real-world applications.
             )
             fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
-            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
-            fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, width="stretch")
 
         with tabs[3]:
-            # Use logarithmic scale for better gradient visualization
-            q_mag_display = np.log10(q_mag + 1e-8)  # Add small value to avoid log(0)
-            
-            fig_vec = go.Figure(data=go.Heatmap(
-                z=q_mag_display, 
-                x=x_coords,
-                y=y_coords,
-                colorscale="RdYlBu_r",
-                colorbar=dict(title="Flow log10(m/day)"),
-                hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Flow: %{customdata:.3e} m/day<extra></extra>",
-                customdata=q_mag
-            ))
-            
-            # Use finer sampling for more arrows.
-            step = max(1, max(model.nx, model.ny) // 20)
-            
             # Use logarithmic scale for better gradient visualization
             q_mag_display = np.log10(q_mag + 1e-8)  # Add small value to avoid log(0)
             
@@ -713,36 +578,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             )
             fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
             st.plotly_chart(fig_vec, use_container_width=True)
-                    mag = q_mag[i, j]
-                    
-                    # Scale arrow size based on flow magnitude
-                    # Normalize magnitude for arrow sizing
-                    q_max = np.max(q_mag)
-                    if q_max > 0:
-                        normalized_mag = mag / q_max
-                    else:
-                        normalized_mag = 0
-                    
-                    # Adaptive scaling: larger for stronger flows
-                    scale_factor = cell_size * (0.25 + 0.35 * normalized_mag)
-                    arrow_width = max(0.5, 3.0 * normalized_mag)  # Range 0.5 to 3.0
-                    
-                    fig_vec.add_annotation(
-                        x=x_coords[j],
-                        y=y_coords[i],
-                        ax=x_coords[j] - qx[i, j] * scale_factor,
-                        ay=y_coords[i] - qy[i, j] * scale_factor,
-                        arrowhead=2,
-                        arrowsize=1.5,
-                        arrowwidth=arrow_width,
-                        arrowcolor="darkred",
-                        xref="x",
-                        yref="y",
-                        axref="x",
-                        ayref="y",
-                        showarrow=True,
-                        opacity=0.7
-                    )
             
             fig_vec.update_layout(
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
