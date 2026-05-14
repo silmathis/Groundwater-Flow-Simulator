@@ -1,5 +1,7 @@
 """Streamlit frontend for the groundwater simulator."""
 
+import time
+import json
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
@@ -13,25 +15,59 @@ def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
     North should be at the top, South at the bottom.
     """
-    # Invert y-axis so North (index 0) is at top
-    fig.update_yaxes(autorange="reversed")
+    # Enforce equal scaling for x/y so physical distances are shown
+    # with correct aspect ratio. Do NOT reverse the axis here — the
+    # model uses row 0 = bottom and row -1 = top, and plotting should
+    # reflect that directly.
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)
 
     # Add compass annotations
     compass_props = dict(showarrow=False, font=dict(size=14, color="black"), 
                          bgcolor="rgba(255,255,255,0.7)", borderpad=4)
 
-    # North (oben mittig)
-    fig.add_annotation(x=x_max / 2, y=-pad, text="<b>N</b>", xanchor="center", **compass_props)
-    
-    # South (unten mittig)
-    fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>S</b>", xanchor="center", **compass_props)
-    
-    # East (rechts mittig)
+    # North (top middle)
+    fig.add_annotation(x=x_max / 2, y=y_max + pad, text="<b>N</b>", xanchor="center", **compass_props)
+
+    # South (bottom middle)
+    fig.add_annotation(x=x_max / 2, y=-pad, text="<b>S</b>", xanchor="center", **compass_props)
+
+    # East (right middle)
     fig.add_annotation(x=x_max + pad, y=y_max / 2, text="<b>E</b>", yanchor="middle", **compass_props)
-    
-    # West (links mittig)
+
+    # West (left middle)
     fig.add_annotation(x=-pad, y=y_max / 2, text="<b>W</b>", yanchor="middle", **compass_props)
     
+    return fig
+
+
+def enforce_equal_xy_aspect(fig):
+    """Ensure 1:1 aspect ratio between x and y axes (equal units per pixel).
+
+    Use this when x and y are in the same physical units so the plot is
+    geometrically correct (e.g., a 50x50 grid appears square).
+    """
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)
+    return fig
+
+
+def style_axes(fig, x_max, y_max, cell_size, nticks=6):
+    """Style axes for consistent background labels and gridlines.
+
+    - Fix axis ranges to data extents
+    - Place a small number of ticks (nticks) evenly
+    - Style grid and tick font for dark backgrounds
+    """
+    # Compute evenly spaced tick positions
+    x_tickvals = list(np.linspace(0, x_max, nticks))
+    y_tickvals = list(np.linspace(0, y_max, nticks))
+
+    grid_color = "rgba(255,255,255,0.06)"  # subtle grid on dark bg
+    tick_font = dict(size=11, color="#dcdcdc")
+
+    fig.update_xaxes(range=[0, x_max], tickmode="array", tickvals=x_tickvals,
+                     showgrid=True, gridcolor=grid_color, tickfont=tick_font)
+    fig.update_yaxes(range=[0, y_max], tickmode="array", tickvals=y_tickvals,
+                     showgrid=True, gridcolor=grid_color, tickfont=tick_font)
     return fig
 
 
@@ -94,7 +130,7 @@ It is **not** suitable for engineering predictions or real-world applications.
     )
 
     if "model" not in st.session_state:
-        st.session_state.model = GroundwaterModel(nx=60, ny=40)
+        st.session_state.model = GroundwaterModel(nx=50, ny=50)
         st.session_state.solved = False
         st.session_state.previous_result = None
         st.session_state.current_result = None
@@ -111,7 +147,7 @@ It is **not** suitable for engineering predictions or real-world applications.
     with st.sidebar.expander("Domain Size", expanded=False):
         st.caption("Sets the simulation grid’s overall size and resolution. Larger grids reveal finer details but require more computation time.")
         nx = st.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
-        ny = st.slider("Grid height (cells)", min_value=15, max_value=80, value=model.ny)
+        ny = st.slider("Grid height (cells)", min_value=20, max_value=100, value=model.ny)
 
     if nx != model.nx or ny != model.ny:
         for idx in range(1, 7):
@@ -130,7 +166,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.caption("Set the hydraulic head values. Point sources inject or extract water at specified locations, while boundary conditions can be applied at the edges of the domain to force inflow or outflow.")
         with st.expander("Point Sources", expanded=False):
             st.caption("Coordinates of the point sources cannot be at the boundaries of the grid.")
-            point_source_count = st.slider("Number of point sources", 1, 6, 2)
+            point_source_count = st.slider("Number of point sources", 0, 6, 0)
             point_sources = []
             for idx in range(1, point_source_count + 1):
                 default_x = int(round((idx / (point_source_count + 1)) * nx))
@@ -153,22 +189,16 @@ It is **not** suitable for engineering predictions or real-world applications.
                 # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
                 point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
 
-        with st.expander("Boundary Conditions", expanded=False):
-            use_boundary_conditions = st.checkbox("Use boundary conditions", value=False)
+        with st.expander("Boundary Conditions (corners only)", expanded=False):
+            st.caption("Define hydraulic head only at the four domain corners. Edges are interpolated linearly from corner values.")
 
-            head_north = 15.0
-            head_south = 5.0
-            head_west = 10.0
-            head_east = 10.0
-
-            if use_boundary_conditions:
-                col1, col2 = st.columns(2)
-                with col1:
-                    head_north = st.slider("North (top)", 0.0, 30.0, 15.0, step=0.5)
-                    head_south = st.slider("South (bottom)", 0.0, 30.0, 5.0, step=0.5)
-                with col2:
-                    head_west = st.slider("West (left)", 0.0, 30.0, 10.0, step=0.5)
-                    head_east = st.slider("East (right)", 0.0, 30.0, 10.0, step=0.5)
+            col1, col2 = st.columns(2)
+            with col1:
+                corner_tl = st.number_input("Top-left head (m)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+                corner_bl = st.number_input("Bottom-left head (m)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+            with col2:
+                corner_tr = st.number_input("Top-right head (m)", min_value=0.0, max_value=100.0, value=10.0, step=0.1)
+                corner_br = st.number_input("Bottom-right head (m)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
 
     with st.sidebar.expander("Conductivity", expanded=False):
         st.caption("Define the conductivity distribution across the domain.")
@@ -179,31 +209,36 @@ It is **not** suitable for engineering predictions or real-world applications.
 
         # Predefined sediment conductivities
         sediment_options = {
-            "High conductivity (sand)": 5.0,
-            "Medium (silt)": 1.0,
-            "Low conductivity (clay)": 0.1,
+            "High conductivity (sand = 10.0 m/day)": 10.0,  # m/day
+            "Medium (silt = 0.1 m/day)": 0.1,  # m/day
+            "Low conductivity (clay = 0.01 m/day)": 0.01,  # m/day
         }
 
         # Background conductivity selection (sediment types or custom)
         st.markdown("**Background conductivity**")
         bg_choice = st.radio(
             "Background type",
-            ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
+            [
+                "High conductivity (sand = 10.0 m/day)",
+                "Medium (silt = 0.1 m/day)",
+                "Low conductivity (clay = 0.01 m/day)",
+                "Custom",
+            ],
             index=1,
         )
         if bg_choice == "Custom":
             background_k = st.slider(
-                "Background conductivity K (m/day)", min_value=0.1, max_value=5.0, value=1.0, step=0.1
+                "Background conductivity K (m/day)", min_value=0.01, max_value=10.0, value=1.0, step=0.01
             )
         else:
             background_k = sediment_options[bg_choice]
 
         # Color mapping for sediments (used in previews)
         bg_color_map = {
-            "High conductivity (sand)": "#fff7b2",  # pale yellow
-            "Medium (silt)": "#dcdcdc",            # light gray
-            "Low conductivity (clay)": "#4a4a4a",  # dark gray
-            "Custom": "#ffffff",                   # white
+            "High conductivity (sand = 10.0 m/day)": "#fff7b2",  # pale yellow
+            "Medium (silt = 0.1 m/day)": "#dcdcdc",  # light gray
+            "Low conductivity (clay = 0.01 m/day)": "#4a4a4a",  # dark gray
+            "Custom": "#ffffff",  # white
         }
         bg_color = bg_color_map.get(bg_choice, "#ffffff")
 
@@ -215,7 +250,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         if conductivity_mode == "Homogeneous medium":
             aspect_ratio = ny / nx
             preview_width = 350
-            preview_height = int(preview_width * aspect_ratio)
+            preview_height = 1200
 
             bg_grid = np.zeros((ny, nx))
             fig_bg = go.Figure(
@@ -242,7 +277,12 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.markdown("Choose sediment type for the zone or set custom K")
             zone_choice = st.radio(
                 "Zone type",
-                ["High conductivity (sand)", "Medium (silt)", "Low conductivity (clay)", "Custom"],
+                [
+                    "High conductivity (sand = 10.0 m/day)",
+                    "Medium (silt = 0.1 m/day)",
+                    "Low conductivity (clay = 0.01 m/day)",
+                    "Custom",
+                ],
                 index=0,
             )
 
@@ -269,12 +309,12 @@ It is **not** suitable for engineering predictions or real-world applications.
             combined_grid[zone_y_min:zone_y_max, zone_x_min:zone_x_max] = 1
             aspect_ratio = ny / nx
             preview_width = 350  # Sidebar width
-            preview_height = int(preview_width * aspect_ratio)
+            preview_height = 1200
 
             zone_color_map = {
-                "High conductivity (sand)": "#fff7b2",
-                "Medium (silt)": "#dcdcdc",
-                "Low conductivity (clay)": "#4a4a4a",
+                "High conductivity (sand = 10.0 m/day)": "#fff7b2",
+                "Medium (silt = 0.1 m/day)": "#dcdcdc",
+                "Low conductivity (clay = 0.01 m/day)": "#4a4a4a",
                 "Custom": "#ffffff",
             }
             zone_color = zone_color_map.get(zone_type, "#ffffff")
@@ -300,8 +340,17 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
         st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone.")
-        recharge_rate = st.slider("Recharge rate (m/day)", 0.0, 0.05, 0.01, step=0.001)
-        
+        aquifer_thickness = st.slider(
+            "Aquifer thickness b (m)",
+            min_value=1.0,
+            max_value=100.0,
+            value=float(getattr(model, "aquifer_thickness", 10.0)),
+            step=1.0,
+        )
+        recharge_rate_mm = st.slider("Recharge rate (mm/day)", 0.0, 20.0, 0.0, step=1.0)
+        # Convert mm/day to m/day
+        recharge_rate = recharge_rate_mm / 1000.0
+
         col1, col2 = st.columns(2)
         with col1:
             recharge_x_min = st.number_input("X start", 0, nx - 1, value=int(nx * 0.3), key="rechg_x_min")
@@ -315,7 +364,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         recharge_grid[recharge_y_min:recharge_y_max, recharge_x_min:recharge_x_max] = recharge_rate
         aspect_ratio = ny / nx
         preview_width = 350  # Sidebar width
-        preview_height = int(preview_width * aspect_ratio)
+        preview_height = 1200
         
         fig_recharge = go.Figure(
             data=go.Heatmap(
@@ -342,10 +391,11 @@ It is **not** suitable for engineering predictions or real-world applications.
         st.rerun()
 
     with st.sidebar.expander("Solver", expanded=False):
-        iterations = st.slider("Max iterations", 10, 500, 100, key="solver_iterations")
+        iterations = st.slider("Max iterations", 10, 5000, 2500, key="solver_iterations")
         tolerance = st.selectbox(
             "Convergence tolerance",
-            [1e-2, 1e-3, 1e-4, 1e-5],
+            [1e-2, 1e-3, 1e-4, 1e-5, 1e-6],
+            index =3, 
             format_func=lambda x: f"{x:.0e}",
             key="solver_tolerance"
         )
@@ -355,11 +405,11 @@ It is **not** suitable for engineering predictions or real-world applications.
         ny,
         point_source_count,
         tuple((p["x"], p["y"], p["h"]) for p in point_sources),
-        use_boundary_conditions,
-        head_north,
-        head_south,
-        head_west,
-        head_east,
+        # corners
+        float(corner_tl),
+        float(corner_tr),
+        float(corner_bl),
+        float(corner_br),
         conductivity_mode,
         zone_type,
         zone_x_min,
@@ -368,6 +418,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         zone_y_max,
         background_k,
         selected_k,
+        aquifer_thickness,
         recharge_rate,
         recharge_x_min,
         recharge_x_max,
@@ -389,11 +440,11 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "nx": nx,
                 "ny": ny,
                 "point_sources": point_sources,
-                "use_boundary_conditions": use_boundary_conditions,
-                "head_north": head_north,
-                "head_south": head_south,
-                "head_west": head_west,
-                "head_east": head_east,
+                # corner-only boundary condition values
+                "corner_tl": float(corner_tl),
+                "corner_tr": float(corner_tr),
+                "corner_bl": float(corner_bl),
+                "corner_br": float(corner_br),
                 "background_k": background_k,
                 "conductivity_mode": conductivity_mode,
                 "zone_x_min": zone_x_min,
@@ -401,6 +452,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "zone_y_min": zone_y_min,
                 "zone_y_max": zone_y_max,
                 "selected_k": selected_k,
+                "aquifer_thickness": aquifer_thickness,
                 "recharge_rate": recharge_rate,
                 "recharge_x_min": recharge_x_min,
                 "recharge_x_max": recharge_x_max,
@@ -410,7 +462,32 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "tolerance": tolerance,
             }
             st.session_state.previous_result = st.session_state.current_result
+            # Timing: measure solver wall time
+            t_solve_start = time.perf_counter()
             result = run_simulation(config)
+            t_solve_end = time.perf_counter()
+            solve_time = t_solve_end - t_solve_start
+
+            # Store timing in session state for later reference
+            st.session_state.last_timing = {
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "solve_time_s": round(solve_time, 3),
+                "nx": nx,
+                "ny": ny,
+                "iterations": iterations,
+                "num_point_sources": len(point_sources),
+            }
+
+            # Print timing to terminal
+            print(f"[TIMING] {st.session_state.last_timing['timestamp']} - Solve time: {solve_time:.3f}s (nx={nx}, ny={ny}, iters={iterations})")
+
+            # Append timing to log file
+            try:
+                with open("sim_timing.log", "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(st.session_state.last_timing) + "\n")
+            except Exception:
+                pass
+
             st.session_state.current_result = result
             st.session_state.model = result["model"]
             st.session_state.solved = True
@@ -424,6 +501,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         summary = st.session_state.current_result["summary"]
         previous_result = st.session_state.get("previous_result")
         has_previous = previous_result is not None and previous_result["model"].head.shape == model.head.shape
+        # Start plotting timer
+        t_plot_start = time.perf_counter()
 
         with col_info:
             st.subheader("Results")
@@ -446,12 +525,13 @@ It is **not** suitable for engineering predictions or real-world applications.
                     z=model.head,
                     x=x_coords,
                     y=y_coords,
-                    colorscale="jet",
+                    colorscale="viridis",
                     colorbar=dict(title="Head (m)"),
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_head = style_axes(fig_head, x_max, y_max, cell_size)
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, width="stretch")
 
@@ -465,7 +545,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                     colorbar=dict(title="log10(K)"),
                 )
             )
-            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_cond = style_axes(fig_cond, x_max, y_max, cell_size)
             fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             st.plotly_chart(fig_cond, width="stretch")
 
@@ -480,7 +561,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_mag = style_axes(fig_mag, x_max, y_max, cell_size)
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, width="stretch")
 
@@ -534,12 +616,13 @@ It is **not** suitable for engineering predictions or real-world applications.
                         opacity=0.7
                     )
             
-            fig_vec.update_layout(
+                fig_vec.update_layout(
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
                 xaxis_title="X (m)",
                 yaxis_title="Y (m)",
-                height=550
+                height=1200
             )
+            fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
             fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
             st.plotly_chart(fig_vec, use_container_width=True)
             
@@ -547,8 +630,9 @@ It is **not** suitable for engineering predictions or real-world applications.
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
                 xaxis_title="X (m)",
                 yaxis_title="Y (m)",
-                height=550
+                height=1200
             )
+            fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
             fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
             st.plotly_chart(fig_vec, use_container_width=True)
 
@@ -563,12 +647,14 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
 
                 fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
-                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+                fig_head_delta = style_axes(fig_head_delta, x_max, y_max, cell_size)
                 fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_head_delta, width="stretch")
 
                 fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
-                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=450)
+                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+                fig_flow_delta = style_axes(fig_flow_delta, x_max, y_max, cell_size)
                 fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_flow_delta, width="stretch")
             else:
@@ -578,9 +664,26 @@ It is **not** suitable for engineering predictions or real-world applications.
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
             fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
-            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=500)
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
             st.plotly_chart(fig_recharge, use_container_width=True)    
-
+        # End plotting timer and print to terminal
+        t_plot_end = time.perf_counter()
+        plot_time = t_plot_end - t_plot_start
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[TIMING] {timestamp} - Plot time: {plot_time:.3f}s")
+        try:
+            # Append plot timing to same log file
+            entry = {
+                "timestamp": timestamp,
+                "plot_time_s": round(plot_time, 3),
+                "nx": model.nx,
+                "ny": model.ny,
+            }
+            with open("sim_timing.log", "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(entry) + "\n")
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()

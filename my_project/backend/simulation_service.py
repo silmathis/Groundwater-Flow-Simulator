@@ -5,14 +5,20 @@ from my_project.groundwater_model import GroundwaterModel
 
 def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
     """Run one groundwater simulation and return data for the frontend."""
-    model = GroundwaterModel(nx=config["nx"], ny=config["ny"])
+    model = GroundwaterModel(
+        nx=config["nx"],
+        ny=config["ny"],
+        aquifer_thickness=float(config.get("aquifer_thickness", 10.0)),
+    )
 
-    model.use_boundary_conditions = config.get("use_boundary_conditions", False)
-    if model.use_boundary_conditions:
-        model.head_north = config["head_north"]
-        model.head_south = config["head_south"]
-        model.head_west = config["head_west"]
-        model.head_east = config["head_east"]
+    # Use corner-defined boundary conditions only (top-left, top-right, bottom-left, bottom-right).
+    # This replaces the previous scalar-per-side API.
+    if any(k in config for k in ("corner_tl", "corner_tr", "corner_bl", "corner_br")):
+        model.use_corner_boundary = True
+        model.head_top_left = float(config.get("corner_tl", 10.0))
+        model.head_top_right = float(config.get("corner_tr", 10.0))
+        model.head_bottom_left = float(config.get("corner_bl", 5.0))
+        model.head_bottom_right = float(config.get("corner_br", 5.0))
 
     # Apply fixed-head point sources (up to model.max_point_sources).
     for idx, source in enumerate(config.get("point_sources", [])[: model.max_point_sources], start=1):

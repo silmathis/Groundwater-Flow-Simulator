@@ -19,7 +19,14 @@ class GroundwaterModel:
     with different hydraulic conductivity values and fixed-head point sources.
     """
     
-    def __init__(self, nx: int = 50, ny: int = 50, cell_size: float = 10.0):
+    def __init__(
+        self,
+        nx: int = 50,
+        ny: int = 50,
+        cell_size: float = 10.0,
+        relaxation_factor: float = 1.0,
+        aquifer_thickness: float = 10.0,
+    ):
         """
         Initialize the groundwater model.
         
@@ -31,11 +38,21 @@ class GroundwaterModel:
             Number of cells in y-direction
         cell_size : float
             Physical size of each cell (m)
+        relaxation_factor : float
+            Relaxation factor for iterative solver (1.0 = exact update from discretized PDE,
+            <1.0 damps convergence for stability, typically 0.1-0.5 for heterogeneous K)
+        aquifer_thickness : float
+            Confined aquifer thickness b (m). Recharge input is treated as N (m/day)
+            and converted to source term N/b (1/day).
         """
         
         self.nx = nx
         self.ny = ny
         self.cell_size = cell_size
+        self.relaxation_factor = relaxation_factor
+        if aquifer_thickness <= 0:
+            raise ValueError("aquifer_thickness must be > 0")
+        self.aquifer_thickness = float(aquifer_thickness)
         
         # Initialize fields
         self.hydraulic_conductivity = np.ones((ny, nx)) * 1.0  # m/day
@@ -48,12 +65,14 @@ class GroundwaterModel:
         self.max_point_sources = 6
         self.point_sources = [None] * self.max_point_sources
 
-        # Optional fixed-head boundary conditions.
-        self.use_boundary_conditions = False
-        self.head_north = 30.0
-        self.head_south = 0.0
-        self.head_east = 0.0
-        self.head_west = 0.0
+        # Corner-based boundary option: if enabled, define values at the four
+        # corners and interpolate linearly along edges. All corner values must
+        # be provided when `use_corner_boundary` is True.
+        self.use_corner_boundary = False
+        self.head_top_left = None
+        self.head_top_right = None
+        self.head_bottom_left = None
+        self.head_bottom_right = None
 
         self._initialize_head()
 
@@ -73,18 +92,48 @@ class GroundwaterModel:
 
     def _apply_boundary_conditions(self):
         """Apply fixed-head boundary values when the option is enabled."""
-        if not self.use_boundary_conditions:
+        # If corner-based boundaries are not enabled, nothing to do here.
+        if not self.use_corner_boundary:
             return
 
-        self.head[0, :] = self.head_north
-        self.head[-1, :] = self.head_south
-        self.head[:, 0] = self.head_west
-        self.head[:, -1] = self.head_east
+        # Corner-based boundaries: all four corner values must be set.
+        nx = self.nx
+        ny = self.ny
+
+        if (
+            self.head_top_left is None
+            or self.head_top_right is None
+            or self.head_bottom_left is None
+            or self.head_bottom_right is None
+        ):
+            raise ValueError("Corner boundary mode enabled but one or more corner values are not set.")
+
+        tl = float(self.head_top_left)
+        tr = float(self.head_top_right)
+        bl = float(self.head_bottom_left)
+        br = float(self.head_bottom_right)
+
+        # Linear interpolation along edges (inclusive of corners)
+        top_edge = np.linspace(tl, tr, nx)
+        bottom_edge = np.linspace(bl, br, nx)
+        left_edge = np.linspace(bl, tl, ny)
+        right_edge = np.linspace(br, tr, ny)
+
+        # Assign to head array.
+        # Model array indexing uses row 0 at the bottom (y=0) and row -1 at the top.
+        # Place `top_edge` on the top row and `bottom_edge` on the bottom row.
+        self.head[-1, :] = top_edge
+        self.head[0, :] = bottom_edge
+        self.head[:, 0] = left_edge
+        self.head[:, -1] = right_edge
 
     def _apply_edge_conditions(self):
         """Apply the currently selected edge conditions."""
-        if self.use_boundary_conditions:
+        # If corner-based boundaries are enabled, apply them. Otherwise use
+        # the no-flow copy behaviour.
+        if self.use_corner_boundary:
             self._apply_boundary_conditions()
+            return
         else:
             # No-flow boundaries: copy adjacent interior values.
             self.head[0, 1:-1] = self.head[1, 1:-1]
@@ -205,8 +254,9 @@ class GroundwaterModel:
                     k_east = (k[i, j + 1] + k[i, j]) / 2
                     k_west = (k[i, j - 1] + k[i, j]) / 2
                     
-                    # Discretized form of Laplace equation with recharge
-                    # ∇²h + R/K = 0 (simplified form)
+                    # Discretized form of ∇·(K∇h) + R = 0 using finite volumes.
+                    # For non-homogeneous K, the update rule is:
+                    #   h_C = (Σ K_face * h_neigh + R*Δx²) / (Σ K_face)
                     numerator = (
                         k_north * head_old[i + 1, j] +
                         k_south * head_old[i - 1, j] +
@@ -215,11 +265,17 @@ class GroundwaterModel:
                     )
                     denominator = k_north + k_south + k_east + k_west
                     
-                    # Add recharge term (simplified)
-                    source_term = (self.recharge[i, j] * 
-                                 (self.cell_size ** 2) / k_center)
+                    # Recharge input is N (m/day); convert to N/b (1/day) for
+                    # ∇·(K∇h) + N/b = 0, then multiply by Δx².
+                    source_term = (
+                        self.recharge[i, j] * (self.cell_size ** 2) / self.aquifer_thickness
+                    )
                     
-                    self.head[i, j] = (numerator / denominator) + 0.1 * source_term
+                    # Exact update from discretized PDE (relaxation_factor=1.0),
+                    # or damped update for stability (relaxation_factor<1.0)
+                    h_new = (numerator + source_term) / denominator
+                    self.head[i, j] = (self.relaxation_factor * h_new + 
+                                      (1.0 - self.relaxation_factor) * head_old[i, j])
             
             self._apply_edge_conditions()
 
