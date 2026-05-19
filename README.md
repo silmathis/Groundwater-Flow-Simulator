@@ -1,10 +1,10 @@
-# 💧 Interactive Groundwater Flow Simulator
+# 💧 Groundwater Simulator
 
 An educational web-based tool for exploring 2D groundwater flow patterns using a simplified model based on Darcy's law.
 
 ## Overview
 
-This simulator allows students and educators to interactively explore how hydraulic conductivity, recharge, and subsurface structure influence groundwater flow. It is designed for **learning and exploration**, not for engineering predictions.
+The Groundwater Simulator allows students and educators to interactively explore how hydraulic conductivity, recharge, and subsurface structure influence groundwater flow. It is designed for **learning and exploration**, not for engineering predictions.
 
 ### Key Features
 
@@ -91,7 +91,7 @@ The app will open in your web browser at `http://localhost:8501`.
 
 ### Physical Basis
 
-The simulator solves a steady-state 2D groundwater flow equation based on **Darcy's Law**:
+The Groundwater Simulator solves a steady-state 2D groundwater flow equation based on **Darcy's Law**:
 
 ```
 q = -K ∇h

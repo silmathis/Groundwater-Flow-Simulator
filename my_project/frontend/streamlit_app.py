@@ -3,6 +3,7 @@
 import time
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -73,7 +74,7 @@ def style_axes(fig, x_max, y_max, cell_size, nticks=6):
 
 def main() -> None:
     st.set_page_config(
-        page_title="Groundwater Flow Simulator",
+        page_title="Groundwater Simulator",
         page_icon=None,
         layout="wide",
         initial_sidebar_state="expanded",
@@ -120,7 +121,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    st.title("Interactive Groundwater Flow Simulator")
+    st.title("Groundwater Simulator")
     st.markdown(
         """
 **Educational Tool Only**  
@@ -502,8 +503,6 @@ It is **not** suitable for engineering predictions or real-world applications.
         qy = st.session_state.current_result["qy"]
         q_mag = st.session_state.current_result["q_mag"]
         summary = st.session_state.current_result["summary"]
-        previous_result = st.session_state.get("previous_result")
-        has_previous = previous_result is not None and previous_result["model"].head.shape == model.head.shape
         # Start plotting timer
         t_plot_start = time.perf_counter()
 
@@ -518,7 +517,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
-            "Change vs Previous Solve",
             "Recharge Map", 
         ])
 
@@ -570,74 +568,28 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.plotly_chart(fig_mag, width="stretch")
 
         with tabs[3]:
-            # Use logarithmic scale for better gradient visualization
-            q_mag_display = np.log10(q_mag + 1e-8)  # Add small value to avoid log(0)
-            
-            fig_vec = go.Figure(data=go.Heatmap(
-                z=q_mag_display, 
-                x=x_coords,
-                y=y_coords,
-                colorscale="RdYlBu_r",
-                colorbar=dict(title="Flow log10(m/day)"),
-                hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Flow: %{customdata:.3e} m/day<extra></extra>",
-                customdata=q_mag
-            ))
-            
-            # Use finer sampling for more arrows.
-            step = max(1, max(model.nx, model.ny) // 20)
-            
-            for i in range(0, model.ny, step):
-                for j in range(0, model.nx, step):
-                    mag = q_mag[i, j]
-                    
-                    # Scale arrow size based on flow magnitude
-                    # Normalize magnitude for arrow sizing
-                    q_max = np.max(q_mag)
-                    if q_max > 0:
-                        normalized_mag = mag / q_max
-                    else:
-                        normalized_mag = 0
-                    
-                    # Adaptive scaling: larger for stronger flows
-                    scale_factor = cell_size * (0.25 + 0.35 * normalized_mag)
-                    arrow_width = max(0.5, 3.0 * normalized_mag)  # Range 0.5 to 3.0
-                    
-                    fig_vec.add_annotation(
-                        x=x_coords[j],
-                        y=y_coords[i],
-                        ax=x_coords[j] - qx[i, j] * scale_factor,
-                        ay=y_coords[i] - qy[i, j] * scale_factor,
-                        arrowhead=2,
-                        arrowsize=1.5,
-                        arrowwidth=arrow_width,
-                        arrowcolor="darkred",
-                        xref="x",
-                        yref="y",
-                        axref="x",
-                        ayref="y",
-                        showarrow=True,
-                        opacity=0.7
-                    )
-            
-                fig_vec.update_layout(
-                title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
-                xaxis_title="X (m)",
-                yaxis_title="Y (m)",
-                height=800
+            # Streamplot visualization using Matplotlib for clear flow lines
+            fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
+            stream = ax.streamplot(
+                x_coords,
+                y_coords,
+                qx,
+                qy,
+                color=q_mag,
+                cmap="plasma",
+                density=1.2,
+                linewidth=1.2,
+                arrowsize=1.5,
             )
-            fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
-            fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
-            st.plotly_chart(fig_vec, use_container_width=True)
-            
-            fig_vec.update_layout(
-                title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
-                xaxis_title="X (m)",
-                yaxis_title="Y (m)",
-                height=800
-            )
-            fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
-            fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
-            st.plotly_chart(fig_vec, use_container_width=True)
+            fig.colorbar(stream.lines, ax=ax, label="Flow (m/day)")
+            ax.set_title("Flow Direction and Magnitude")
+            ax.set_xlabel("X (m)")
+            ax.set_ylabel("Y (m)")
+            ax.set_xlim(0, x_max)
+            ax.set_ylim(0, y_max)
+            ax.set_aspect("equal", adjustable="box")
+            ax.grid(True, alpha=0.15)
+            st.pyplot(fig, clear_figure=True)
 
         with tabs[4]:
             if has_previous:
@@ -664,6 +616,31 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.info("Solve at least twice with different inputs to see change maps.")
         
         with tabs[5]:
+=======
+            fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
+            stream = ax.streamplot(
+                x_coords,
+                y_coords,
+                qx,
+                qy,
+                color=q_mag,
+                cmap="plasma",
+                density=1.2,
+                linewidth=1.2,
+                arrowsize=1.5,
+            )
+            fig.colorbar(stream.lines, ax=ax, label="Flow (m/day)")
+            ax.set_title("Flow Direction and Magnitude")
+            ax.set_xlabel("X (m)")
+            ax.set_ylabel("Y (m)")
+            ax.set_xlim(0, x_max)
+            ax.set_ylim(0, y_max)
+            ax.set_aspect("equal", adjustable="box")
+            ax.grid(True, alpha=0.15)
+            st.pyplot(fig, clear_figure=True)
+
+        with tabs[4]:
+>>>>>>> cd9ccd9 (Streamplot)
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
             fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
