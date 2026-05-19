@@ -530,7 +530,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_head = style_axes(fig_head, x_max, y_max, cell_size)
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, width="stretch")
@@ -545,7 +545,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                     colorbar=dict(title="log10(K)"),
                 )
             )
-            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_cond = style_axes(fig_cond, x_max, y_max, cell_size)
             fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             st.plotly_chart(fig_cond, width="stretch")
@@ -561,7 +561,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                     contours=dict(coloring="heatmap"),
                 )
             )
-            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_mag = style_axes(fig_mag, x_max, y_max, cell_size)
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, width="stretch")
@@ -620,7 +620,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
                 xaxis_title="X (m)",
                 yaxis_title="Y (m)",
-                height=1200
+                height=800
             )
             fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
             fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
@@ -630,7 +630,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 title="Flow Direction and Magnitude (Arrow size indicates flow strength)",
                 xaxis_title="X (m)",
                 yaxis_title="Y (m)",
-                height=1200
+                height=800
             )
             fig_vec = style_axes(fig_vec, x_max, y_max, cell_size)
             fig_vec = add_compass_and_invert_yaxis(fig_vec, x_max, y_max, cell_size)
@@ -647,13 +647,13 @@ It is **not** suitable for engineering predictions or real-world applications.
                 st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
 
                 fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
-                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
                 fig_head_delta = style_axes(fig_head_delta, x_max, y_max, cell_size)
                 fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_head_delta, width="stretch")
 
                 fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
-                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
                 fig_flow_delta = style_axes(fig_flow_delta, x_max, y_max, cell_size)
                 fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
                 st.plotly_chart(fig_flow_delta, width="stretch")
@@ -664,7 +664,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
             fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
-            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=1200)
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
             st.plotly_chart(fig_recharge, use_container_width=True)    
         # End plotting timer and print to terminal
