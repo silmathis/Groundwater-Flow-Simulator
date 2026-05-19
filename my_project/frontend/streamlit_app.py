@@ -385,11 +385,6 @@ It is **not** suitable for engineering predictions or real-world applications.
         )
         st.plotly_chart(fig_recharge, use_container_width=True)
 
-    if st.sidebar.button("Reset Model", type="secondary"):
-        st.session_state.model = GroundwaterModel(nx=nx, ny=ny)
-        st.session_state.solved = False
-        st.rerun()
-
     with st.sidebar.expander("Solver", expanded=False):
         iterations = st.slider("Max iterations", 10, 5000, 2500, key="solver_iterations")
         tolerance = st.selectbox(
@@ -399,6 +394,14 @@ It is **not** suitable for engineering predictions or real-world applications.
             format_func=lambda x: f"{x:.0e}",
             key="solver_tolerance"
         )
+
+    # Reset Model button at the bottom left of sidebar
+    col_reset, col_spacer = st.sidebar.columns([1, 1.5])
+    with col_reset:
+        if st.button("Reset Model", type="secondary", use_container_width=True):
+            st.session_state.model = GroundwaterModel(nx=nx, ny=ny)
+            st.session_state.solved = False
+            st.rerun()
 
     current_controls = (
         nx,
