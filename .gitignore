@@ -34,3 +34,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Logging
+sim_timing.log

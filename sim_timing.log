@@ -23,3 +23,5 @@
 {"timestamp": "2026-05-14 14:59:33", "solve_time_s": 9.506, "nx": 50, "ny": 50, "iterations": 2500, "num_point_sources": 0}
 {"timestamp": "2026-05-14 15:00:00", "plot_time_s": 27.334, "nx": 50, "ny": 50}
 {"timestamp": "2026-05-14 15:03:41", "solve_time_s": 9.69, "nx": 50, "ny": 50, "iterations": 2500, "num_point_sources": 0}
+{"timestamp": "2026-05-14 18:37:34", "solve_time_s": 83.465, "nx": 50, "ny": 50, "iterations": 2500, "num_point_sources": 0}
+{"timestamp": "2026-05-14 18:40:56", "plot_time_s": 201.87, "nx": 50, "ny": 50}
