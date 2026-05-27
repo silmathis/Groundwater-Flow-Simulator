@@ -39,3 +39,11 @@ Thumbs.db
 
 # Logging
 sim_timing.log
+
+# Rubric / Course materials (local only)
+grading_rubric_v3.pdf
+
+# Output / Data
+output/
+*.png
+*.csv
