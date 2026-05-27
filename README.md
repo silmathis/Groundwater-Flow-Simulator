@@ -22,8 +22,8 @@ The Groundwater Simulator allows students and educators to interactively explore
 
 ### Installation
 
-`pip install -e .` installs this project into the currently active Python environment.
-It does **not** create a virtual environment by itself.
+`requirements.txt` contains both runtime and development dependencies.
+Install everything from one file after activating your virtual environment.
 
 #### Recommended setup (macOS / Linux / Windows)
 
@@ -34,7 +34,7 @@ macOS / Linux (bash, zsh):
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -e .
+python3 -m pip install -r requirements.txt
 ```
 
 Windows (with Git Bash):
@@ -42,12 +42,12 @@ Windows (with Git Bash):
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate
-python -m pip install -e .
+python -m pip install -r requirements.txt
 ```
 
 Notes:
-- Use `python3` on systems where `python` maps to Python 2 or is not available. For example, `python3 -m venv .venv` and `python3 -m pip install -e .` on macOS.
-- If `pip install -e .` fails with `command not found`, prefer the `python -m pip ...` form shown above.
+- Use `python3` on systems where `python` maps to Python 2 or is not available. For example, `python3 -m venv .venv` and `python3 -m pip install -r requirements.txt` on macOS.
+- If `pip install -r requirements.txt` fails with `command not found`, prefer the `python -m pip ...` form shown above.
 - If activation fails, verify you are in the repository root and that the `.venv` directory was created. On macOS you may need to allow script execution or use a different shell (e.g., `zsh`).
 - **Remember:** Every new terminal session requires activation! Use `source .venv/Scripts/activate` (Windows) or `source .venv/bin/activate` (macOS/Linux) to activate the virtual environment again.
 
@@ -141,27 +141,29 @@ where **R** is the recharge rate.
 ```
 .
 ├── app.py
-├── pyproject.toml
 ├── requirements.txt
 ├── README.md
 ├── docs/
-│   └── Groundwater_concept.md
-├── data/
-├── output/
+│   ├── Groundwater_concept.md
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   └── README.md
 ├── examples/
-│   └── tutorials/
 ├── tests/
-├── my_project/
+├── Simulator/
 │   ├── __init__.py
 │   ├── groundwater_model.py
 │   ├── backend/
 │   │   └── simulation_service.py
 │   └── frontend/
 │       └── streamlit_app.py
+├── pyproject.toml
+├── LICENSE
+├── CONTRIBUTING.md
 └── .gitignore
 ```
 
-The top-level layout now mirrors the target project sketch more closely: documentation lives under `docs/`, runnable examples belong in `examples/tutorials/`, generated files go to `output/`, and root-level tests live in `tests/`.
+The top-level layout keeps runtime and development dependencies in one place, documents the API in `docs/`, and separates reusable application code from examples and tests.
 
 ## Dependencies
 
@@ -171,10 +173,7 @@ The top-level layout now mirrors the target project sketch more closely: documen
 - **Plotly:** Interactive visualizations
 - **Matplotlib:** (optional) Static plotting
 
-Install all dependencies:
-```bash
-pip install numpy scipy streamlit plotly matplotlib
-```
+Install all dependencies with `pip install -r requirements.txt` after activating your virtual environment.
 
 ## Examples & Exercises
 
