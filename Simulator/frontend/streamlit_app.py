@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
-from my_project.backend.simulation_service import run_simulation
-from my_project.groundwater_model import GroundwaterModel
+from Simulator.backend.simulation_service import run_simulation
+from Simulator.groundwater_model import GroundwaterModel
 
 
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
@@ -517,7 +517,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
-            "Recharge Map", 
+            "Recharge Map",
+            "Streamplot",
         ])
 
         with tabs[0]:
@@ -592,31 +593,22 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.pyplot(fig, clear_figure=True)
 
         with tabs[4]:
-            if has_previous:
-                prev_model = previous_result["model"]
-                prev_q_mag = previous_result["q_mag"]
-                head_delta = model.head - prev_model.head
-                flow_delta = q_mag - prev_q_mag
+            recharge_map = np.zeros_like(model.head)
+            recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
+            fig_recharge = go.Figure(
+                data=go.Heatmap(
+                    z=recharge_map,
+                    x=x_coords,
+                    y=y_coords,
+                    colorscale="YlGnBu",
+                    colorbar=dict(title="Recharge (m/day)"),
+                )
+            )
+            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
+            fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
+            st.plotly_chart(fig_recharge, use_container_width=True)
 
-                st.metric("max |Delta head|", f"{np.max(np.abs(head_delta)):.3f} m")
-                st.metric("max |Delta flow|", f"{np.max(np.abs(flow_delta)):.3f} m/day")
-
-                fig_head_delta = go.Figure(data=go.Heatmap(z=head_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta head (m)")))
-                fig_head_delta.update_layout(title="Head Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
-                fig_head_delta = style_axes(fig_head_delta, x_max, y_max, cell_size)
-                fig_head_delta = add_compass_and_invert_yaxis(fig_head_delta, x_max, y_max, cell_size)
-                st.plotly_chart(fig_head_delta, width="stretch")
-
-                fig_flow_delta = go.Figure(data=go.Heatmap(z=flow_delta, x=x_coords, y=y_coords, colorscale="RdBu", zmid=0.0, colorbar=dict(title="Delta flow (m/day)")))
-                fig_flow_delta.update_layout(title="Flow Change Since Previous Solve", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
-                fig_flow_delta = style_axes(fig_flow_delta, x_max, y_max, cell_size)
-                fig_flow_delta = add_compass_and_invert_yaxis(fig_flow_delta, x_max, y_max, cell_size)
-                st.plotly_chart(fig_flow_delta, width="stretch")
-            else:
-                st.info("Solve at least twice with different inputs to see change maps.")
-        
         with tabs[5]:
-=======
             fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
             stream = ax.streamplot(
                 x_coords,
@@ -638,15 +630,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             ax.set_aspect("equal", adjustable="box")
             ax.grid(True, alpha=0.15)
             st.pyplot(fig, clear_figure=True)
-
-        with tabs[4]:
->>>>>>> cd9ccd9 (Streamplot)
-            recharge_map = np.zeros_like(model.head)
-            recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
-            fig_recharge = go.Figure(data=go.Heatmap(z=recharge_map, x=x_coords, y=y_coords, colorscale="YlGnBu", colorbar=dict(title="Recharge (m/day)")))
-            fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
-            fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
-            st.plotly_chart(fig_recharge, use_container_width=True)    
         # End plotting timer and print to terminal
         t_plot_end = time.perf_counter()
         plot_time = t_plot_end - t_plot_start

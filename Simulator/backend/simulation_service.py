@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-from my_project.groundwater_model import GroundwaterModel
+from Simulator.groundwater_model import GroundwaterModel
 
 
 def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:

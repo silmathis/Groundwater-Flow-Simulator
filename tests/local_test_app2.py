@@ -19,7 +19,7 @@ import numpy as np
 # Add repo to path so imports work
 sys.path.insert(0, ".")
 
-from my_project.groundwater_model import GroundwaterModel
+from Simulator.groundwater_model import GroundwaterModel
 
 
 def plot_field(ax, data, x_coords, y_coords, title, cmap="jet", cbar_label="Value", vmin=0, vmax=1):
