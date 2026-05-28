@@ -1,4 +1,4 @@
-# 💧 Groundwater Simulator
+# Groundwater Simulator
 
 An educational web-based tool for exploring 2D groundwater flow patterns using a simplified model based on Darcy's law.
 
@@ -124,13 +124,13 @@ where **R** is the recharge rate.
 - **Fully saturated:** No vadose (unsaturated) zone
 - **2D only:** Simplified representation (ignores 3D effects)
 
-**⚠️ NOT suitable for:**
+** NOT suitable for:**
 - Engineering site assessments
 - Real-world predictions
 - Design calculations
 - Regulatory submissions
 
-**✅ SUITABLE for:**
+** SUITABLE for:**
 - Hydrogeology education
 - Intuition building
 - Exploring parameter sensitivity
