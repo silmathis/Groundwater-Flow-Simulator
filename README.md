@@ -1,4 +1,4 @@
-#  Groundwater Simulator
+# 💧 Groundwater Simulator
 
 An educational web-based tool for exploring 2D groundwater flow patterns using a simplified model based on Darcy's law.
 
@@ -222,6 +222,6 @@ For questions or issues, please open an issue in the repository.
 
 ---
 
-**Version:** 0.1.0
-**Last Updated:** 2026-04-21
+**Version:** 0.1.0  
+**Last Updated:** 2026-04-21  
 **Status:** Active Development
