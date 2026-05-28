@@ -116,6 +116,10 @@ def main() -> None:
             div[data-testid="stMainBlockContainer"] {
                 max-width: none !important;
             }
+
+            button[data-testid="stMainMenuItem-theme-System"] {
+                display: none !important;
+            }
         </style>
         """,
         unsafe_allow_html=True,
