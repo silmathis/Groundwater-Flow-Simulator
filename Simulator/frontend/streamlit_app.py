@@ -1,7 +1,6 @@
 """Streamlit frontend for the groundwater simulator."""
 
 import time
-import json
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -470,31 +469,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 "tolerance": tolerance,
             }
             st.session_state.previous_result = st.session_state.current_result
-            # Timing: measure solver wall time
-            t_solve_start = time.perf_counter()
             result = run_simulation(config)
-            t_solve_end = time.perf_counter()
-            solve_time = t_solve_end - t_solve_start
-
-            # Store timing in session state for later reference
-            st.session_state.last_timing = {
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "solve_time_s": round(solve_time, 3),
-                "nx": nx,
-                "ny": ny,
-                "iterations": iterations,
-                "num_point_sources": len(point_sources),
-            }
-
-            # Print timing to terminal
-            print(f"[TIMING] {st.session_state.last_timing['timestamp']} - Solve time: {solve_time:.3f}s (nx={nx}, ny={ny}, iters={iterations})")
-
-            # Append timing to log file
-            try:
-                with open("sim_timing.log", "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(st.session_state.last_timing) + "\n")
-            except Exception:
-                pass
 
             st.session_state.current_result = result
             st.session_state.model = result["model"]
@@ -507,9 +482,6 @@ It is **not** suitable for engineering predictions or real-world applications.
         qy = st.session_state.current_result["qy"]
         q_mag = st.session_state.current_result["q_mag"]
         summary = st.session_state.current_result["summary"]
-        # Start plotting timer
-        t_plot_start = time.perf_counter()
-
         with col_info:
             st.subheader("Results")
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
@@ -634,23 +606,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             ax.set_aspect("equal", adjustable="box")
             ax.grid(True, alpha=0.15)
             st.pyplot(fig, clear_figure=True)
-        # End plotting timer and print to terminal
-        t_plot_end = time.perf_counter()
-        plot_time = t_plot_end - t_plot_start
-        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[TIMING] {timestamp} - Plot time: {plot_time:.3f}s")
-        try:
-            # Append plot timing to same log file
-            entry = {
-                "timestamp": timestamp,
-                "plot_time_s": round(plot_time, 3),
-                "nx": model.nx,
-                "ny": model.ny,
-            }
-            with open("sim_timing.log", "a", encoding="utf-8") as fh:
-                fh.write(json.dumps(entry) + "\n")
-        except Exception:
-            pass
 
 if __name__ == "__main__":
     main()
