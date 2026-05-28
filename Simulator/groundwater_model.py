@@ -7,7 +7,7 @@ for educational and exploratory purposes, not for engineering predictions.
 """
 
 import numpy as np
-from typing import Tuple, Dict
+from typing import Callable, Dict, Optional, Tuple
 
 
 class GroundwaterModel:
@@ -80,6 +80,12 @@ class GroundwaterModel:
         """Initialize the head field from a neutral starting condition."""
         self.head = np.ones((self.ny, self.nx)) * 0.0
         self.head_initial = self.head.copy()
+
+    def prepare_initial_state(self):
+        """Reset the head field and apply boundary and point-source conditions."""
+        self._initialize_head()
+        self._apply_edge_conditions()
+        self._apply_point_sources()
 
     def _active_point_sources(self):
         """Return active point sources as (x, y, head_value) tuples."""
@@ -213,7 +219,13 @@ class GroundwaterModel:
             raise ValueError(f"source_num must be between 1 and {self.max_point_sources}")
         self.point_sources[source_num - 1] = None
     
-    def solve(self, iterations: int = 100, tolerance: float = 1e-3):
+    def solve(
+        self,
+        iterations: int = 100,
+        tolerance: float = 1e-3,
+        progress_callback: Optional[Callable[[int, np.ndarray, bool], None]] = None,
+        progress_interval: int = 50,
+    ):
         """
         Solve the steady-state flow equation using iterative relaxation.
         
@@ -228,9 +240,12 @@ class GroundwaterModel:
             Convergence tolerance (change in max head)
         """
         # Start each solve from a clean field so previous runs do not leak in.
-        self._initialize_head()
-        self._apply_edge_conditions()
-        self._apply_point_sources()
+        self.prepare_initial_state()
+
+        if progress_callback is not None:
+            progress_callback(0, self.head.copy(), False)
+
+        progress_interval = max(1, int(progress_interval))
         
         for iteration in range(iterations):
             head_old = self.head.copy()
@@ -284,6 +299,16 @@ class GroundwaterModel:
             
             # Check convergence
             change = np.max(np.abs(self.head - head_old))
+            should_emit = (
+                progress_callback is not None
+                and (
+                    (iteration + 1) % progress_interval == 0
+                    or change < tolerance
+                    or iteration == iterations - 1
+                )
+            )
+            if should_emit:
+                progress_callback(iteration + 1, self.head.copy(), change < tolerance or iteration == iterations - 1)
             if change < tolerance:
                 print(f"Converged after {iteration + 1} iterations (change: {change:.2e})")
                 break

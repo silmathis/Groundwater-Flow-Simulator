@@ -1,10 +1,10 @@
-from typing import Dict, Any
+from typing import Any, Callable, Dict, Optional
 
 from Simulator.groundwater_model import GroundwaterModel
 
 
-def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Run one groundwater simulation and return data for the frontend."""
+def build_model_from_config(config: Dict[str, Any]) -> GroundwaterModel:
+    """Create and configure a groundwater model without running the solver."""
     model = GroundwaterModel(
         nx=config["nx"],
         ny=config["ny"],
@@ -43,7 +43,22 @@ def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
         config["recharge_rate"],
     )
 
-    model.solve(iterations=config["iterations"], tolerance=config["tolerance"])
+    return model
+
+
+def run_simulation(
+    config: Dict[str, Any],
+    progress_callback: Optional[Callable[[int, Any, bool], None]] = None,
+    progress_interval: int = 50,
+) -> Dict[str, Any]:
+    """Run one groundwater simulation and return data for the frontend."""
+    model = build_model_from_config(config)
+    model.solve(
+        iterations=config["iterations"],
+        tolerance=config["tolerance"],
+        progress_callback=progress_callback,
+        progress_interval=progress_interval,
+    )
     qx, qy, q_mag = model.compute_flow()
 
     # Prepare serializable versions of array data for safe transfer

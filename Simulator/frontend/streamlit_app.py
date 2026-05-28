@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 
-from Simulator.backend.simulation_service import run_simulation
+from Simulator.backend.simulation_service import build_model_from_config, run_simulation
 from Simulator.groundwater_model import GroundwaterModel
 
 
@@ -69,6 +69,53 @@ def style_axes(fig, x_max, y_max, cell_size, nticks=6):
     fig.update_yaxes(range=[0, y_max], tickmode="array", tickvals=y_tickvals,
                      showgrid=True, gridcolor=grid_color, tickfont=tick_font)
     return fig
+
+
+def create_head_figure(head, x_coords, y_coords, x_max, y_max, cell_size, title, zmax=None):
+    """Build a consistent hydraulic head figure for previews and live updates.
+
+    If `zmax` is not provided, compute zmin/zmax from the data with a small
+    padding so the color scale adapts to transient peaks (e.g., recharge zones).
+    """
+    z = np.asarray(head)
+    # Compute robust min/max and add 5% padding to improve readability.
+    data_min = float(np.nanmin(z))
+    data_max = float(np.nanmax(z))
+    if zmax is None:
+        span = max(1e-6, data_max - data_min)
+        zmin = data_min - 0.05 * span
+        zmax_auto = data_max + 0.05 * span
+    else:
+        # Keep a lower bound at zero unless data_min is negative.
+        zmin = min(0.0, data_min)
+        zmax_auto = max(float(zmax), data_max)
+
+    fig = go.Figure(
+        data=go.Contour(
+            z=z,
+            x=x_coords,
+            y=y_coords,
+            colorscale="viridis",
+            zmin=zmin,
+            zmax=zmax_auto,
+            colorbar=dict(title="Head (m)"),
+            contours=dict(coloring="heatmap"),
+        )
+    )
+    fig.update_layout(title=title, xaxis_title="X (m)", yaxis_title="Y (m)", height=700)
+    fig = style_axes(fig, x_max, y_max, cell_size)
+    fig = add_compass_and_invert_yaxis(fig, x_max, y_max, cell_size)
+    return fig
+
+
+def render_plotly_component(fig, height=700):
+    """Render a Plotly figure using Streamlit's native Plotly chart renderer.
+
+    This keeps styling consistent with the other `st.plotly_chart` usages
+    in the app and matches the design used in the lower tabs.
+    """
+    config = {"displayModeBar": False, "responsive": True}
+    st.plotly_chart(fig, use_container_width=True, height=height, config=config)
 
 
 # In this main function, we build the Streamlit UI which handles user input and displays results.
@@ -146,10 +193,11 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     model = st.session_state.model
     cell_size = model.cell_size
-    x_coords = np.arange(model.nx) * cell_size
-    y_coords = np.arange(model.ny) * cell_size
-    x_max = x_coords[-1]
-    y_max = y_coords[-1]
+    # Use cell centers for display so the outer domain boundary reaches the full extent.
+    x_coords = (np.arange(model.nx) + 0.5) * cell_size
+    y_coords = (np.arange(model.ny) + 0.5) * cell_size
+    x_max = model.nx * cell_size
+    y_max = model.ny * cell_size
 
 # Now, we build the sidebar UI for user input of the model parameters.
     st.sidebar.header("Model Parameters")
@@ -277,8 +325,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_bg = go.Figure(
                 data=go.Heatmap(
                     z=bg_grid,
-                    x=np.arange(nx) * cell_size,
-                    y=np.arange(ny) * cell_size,
+                    x=x_coords,
+                    y=y_coords,
                     colorscale=[[0, bg_color], [1, bg_color]],
                     showscale=False,
                     hovertemplate="Background: x=%{x:.1f} m<br>y=%{y:.1f} m<extra></extra>",
@@ -291,7 +339,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 height=preview_height,
                 margin=dict(l=30, r=30, t=30, b=30),
             )
-            st.plotly_chart(fig_bg, use_container_width=True)
+            st.plotly_chart(fig_bg, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
         # This is the preview for the heterogeneous conductivity with a zone.
         if conductivity_mode == "Heterogeneous medium with zone":
@@ -344,8 +392,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_zone = go.Figure(
                 data=go.Heatmap(
                     z=combined_grid,
-                    x=np.arange(nx) * cell_size,
-                    y=np.arange(ny) * cell_size,
+                    x=x_coords,
+                    y=y_coords,
                     colorscale=[[0, bg_color], [1, zone_color]],
                     showscale=False,
                     hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Zone: %{z}<extra></extra>",
@@ -358,7 +406,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 height=preview_height,
                 margin=dict(l=30, r=30, t=40, b=30),
             )
-            st.plotly_chart(fig_zone, use_container_width=True)
+            st.plotly_chart(fig_zone, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
     # This section allows the user to define a recharge zone where water infiltrates into the aquifer.
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
@@ -393,8 +441,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         fig_recharge = go.Figure(
             data=go.Heatmap(
                 z=recharge_grid,
-                x=np.arange(nx) * cell_size,
-                y=np.arange(ny) * cell_size,
+                x=x_coords,
+                y=y_coords,
                 colorscale="Blues",
                 showscale=False,
                 hovertemplate="X: %{x:.1f} m<br>Y: %{y:.1f} m<br>Rate: %{z:.4f} m/day<extra></extra>",
@@ -407,7 +455,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             height=preview_height,
             margin=dict(l=30, r=30, t=40, b=30),
         )
-        st.plotly_chart(fig_recharge, use_container_width=True)
+        st.plotly_chart(fig_recharge, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
     # Finally, the user can set the solver parameters such as maximum iterations and convergence tolerance.
     with st.sidebar.expander("Solver", expanded=False):
@@ -457,6 +505,32 @@ It is **not** suitable for engineering predictions or real-world applications.
         tolerance,
     )
 
+    simulation_config = {
+        "nx": nx,
+        "ny": ny,
+        "point_sources": point_sources,
+        # corner-only boundary condition values
+        "corner_tl": float(corner_tl),
+        "corner_tr": float(corner_tr),
+        "corner_bl": float(corner_bl),
+        "corner_br": float(corner_br),
+        "background_k": background_k,
+        "conductivity_mode": conductivity_mode,
+        "zone_x_min": zone_x_min,
+        "zone_x_max": zone_x_max,
+        "zone_y_min": zone_y_min,
+        "zone_y_max": zone_y_max,
+        "selected_k": selected_k,
+        "aquifer_thickness": aquifer_thickness,
+        "recharge_rate": recharge_rate,
+        "recharge_x_min": recharge_x_min,
+        "recharge_x_max": recharge_x_max,
+        "recharge_y_min": recharge_y_min,
+        "recharge_y_max": recharge_y_max,
+        "iterations": iterations,
+        "tolerance": tolerance,
+    }
+
     # If the controls have changed since the last run, we mark the model as unsolved to indicate that the results may be outdated.
     if st.session_state.get("last_controls") != current_controls:
         st.session_state.solved = False
@@ -464,37 +538,88 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     col_main, col_info = st.columns([3, 1])
 
+    head_display_candidates = [
+        1.0,
+        float(corner_tl),
+        float(corner_tr),
+        float(corner_bl),
+        float(corner_br),
+    ]
+    head_display_candidates.extend(float(p["h"]) for p in point_sources)
+    head_display_max = max(head_display_candidates)
+
+    with col_main:
+        st.subheader("Hydraulic Head Evolution")
+        head_status_slot = st.empty()
+        head_plot_slot = st.empty()
+
+        if st.session_state.solved and st.session_state.current_result is not None:
+            head_status_slot.caption("Final hydraulic head field")
+            with head_plot_slot.container():
+                render_plotly_component(
+                    create_head_figure(
+                        st.session_state.current_result["model"].head,
+                        x_coords,
+                        y_coords,
+                        x_max,
+                        y_max,
+                        cell_size,
+                        "Hydraulic Head Distribution",
+                        None,
+                    )
+                )
+        else:
+            preview_model = build_model_from_config(simulation_config)
+            preview_model.prepare_initial_state()
+            head_status_slot.caption("Initial hydraulic head field before solving")
+            with head_plot_slot.container():
+                render_plotly_component(
+                    create_head_figure(
+                        preview_model.head,
+                        x_coords,
+                        y_coords,
+                        x_max,
+                        y_max,
+                        cell_size,
+                        "Initial Hydraulic Head Field",
+                        None,
+                    )
+                )
+
     # This button runs the simulation with the current parameters. 
     # It also shows a spinner while the model is being solved and updates the session state with the results.
     if st.button("Solve Model", width="stretch", type="primary"):
         with st.spinner("Solving..."):
-            config = {
-                "nx": nx,
-                "ny": ny,
-                "point_sources": point_sources,
-                # corner-only boundary condition values
-                "corner_tl": float(corner_tl),
-                "corner_tr": float(corner_tr),
-                "corner_bl": float(corner_bl),
-                "corner_br": float(corner_br),
-                "background_k": background_k,
-                "conductivity_mode": conductivity_mode,
-                "zone_x_min": zone_x_min,
-                "zone_x_max": zone_x_max,
-                "zone_y_min": zone_y_min,
-                "zone_y_max": zone_y_max,
-                "selected_k": selected_k,
-                "aquifer_thickness": aquifer_thickness,
-                "recharge_rate": recharge_rate,
-                "recharge_x_min": recharge_x_min,
-                "recharge_x_max": recharge_x_max,
-                "recharge_y_min": recharge_y_min,
-                "recharge_y_max": recharge_y_max,
-                "iterations": iterations,
-                "tolerance": tolerance,
-            }
             st.session_state.previous_result = st.session_state.current_result
-            result = run_simulation(config)
+
+            def update_head_progress(iteration: int, head_snapshot, is_final: bool) -> None:
+                if iteration == 0:
+                    status_text = "Initial hydraulic head field"
+                elif is_final:
+                    status_text = f"Hydraulic head converged after {iteration} iterations"
+                else:
+                    status_text = f"Hydraulic head after {iteration} iterations"
+
+                head_status_slot.caption(status_text)
+                with head_plot_slot.container():
+                    render_plotly_component(
+                        create_head_figure(
+                            head_snapshot,
+                            x_coords,
+                            y_coords,
+                            x_max,
+                            y_max,
+                            cell_size,
+                            status_text,
+                            None,
+                        )
+                    )
+
+            result = run_simulation(
+                simulation_config,
+                progress_callback=update_head_progress,
+                progress_interval=50,
+            )
 
             st.session_state.current_result = result
             st.session_state.model = result["model"]
@@ -523,7 +648,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Flow Magnitude",
             "Flow Vectors",
             "Recharge Map",
-            "Streamplot",
         ])
 
         # This is the first tab: Hydraulic head distribution.
@@ -541,7 +665,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_head.update_layout(title="Hydraulic Head Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_head = style_axes(fig_head, x_max, y_max, cell_size)
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
-            st.plotly_chart(fig_head, width="stretch")
+            st.plotly_chart(fig_head, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
         # This is the second tab: Conductivity distribution.
         with tabs[1]:
@@ -557,7 +681,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_cond = style_axes(fig_cond, x_max, y_max, cell_size)
             fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
-            st.plotly_chart(fig_cond, width="stretch")
+            st.plotly_chart(fig_cond, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
         # This is the third tab: Flow magnitude distribution.
         with tabs[2]:
@@ -574,7 +698,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_mag.update_layout(title="Groundwater Flow Magnitude", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_mag = style_axes(fig_mag, x_max, y_max, cell_size)
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
-            st.plotly_chart(fig_mag, width="stretch")
+            st.plotly_chart(fig_mag, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
         # This is the fourth tab: Flow vectors showing the direction and magnitude of the flow.
         with tabs[3]:
@@ -616,31 +740,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             )
             fig_recharge.update_layout(title="Recharge Distribution", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
             fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
-            st.plotly_chart(fig_recharge, use_container_width=True)
-
-        # This is the sixth tab: Combined flow direction and magnitude.
-        with tabs[5]:
-            fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
-            stream = ax.streamplot(
-                x_coords,
-                y_coords,
-                qx,
-                qy,
-                color=q_mag,
-                cmap="plasma",
-                density=1.2,
-                linewidth=1.2,
-                arrowsize=1.5,
-            )
-            fig.colorbar(stream.lines, ax=ax, label="Flow (m/day)")
-            ax.set_title("Flow Direction and Magnitude")
-            ax.set_xlabel("X (m)")
-            ax.set_ylabel("Y (m)")
-            ax.set_xlim(0, x_max)
-            ax.set_ylim(0, y_max)
-            ax.set_aspect("equal", adjustable="box")
-            ax.grid(True, alpha=0.15)
-            st.pyplot(fig, clear_figure=True)
+            st.plotly_chart(fig_recharge, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
 # The main function is called when the script is run, starting the Streamlit app.
 if __name__ == "__main__":
