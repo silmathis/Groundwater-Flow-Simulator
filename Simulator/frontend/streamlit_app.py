@@ -143,8 +143,9 @@ It is **not** suitable for engineering predictions or real-world applications.
     cell_size = model.cell_size
     x_coords = np.arange(model.nx) * cell_size
     y_coords = np.arange(model.ny) * cell_size
-    x_max = x_coords[-1]
-    y_max = y_coords[-1]
+    # Use the full domain extent so a 30x30 grid with 10 m cells spans 0..300.
+    x_max = model.nx * cell_size
+    y_max = model.ny * cell_size
 
     st.sidebar.header("Model Parameters")
 
