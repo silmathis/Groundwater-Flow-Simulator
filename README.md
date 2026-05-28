@@ -1,10 +1,10 @@
-# Interactive Groundwater Flow Simulator
+# 💧 Groundwater Simulator
 
 An educational web-based tool for exploring 2D groundwater flow patterns using a simplified model based on Darcy's law.
 
 ## Overview
 
-This simulator allows students and educators to interactively explore how hydraulic conductivity, recharge, and subsurface structure influence groundwater flow. It is designed for **learning and exploration**, not for engineering predictions.
+The Groundwater Simulator allows students and educators to interactively explore how hydraulic conductivity, recharge, and subsurface structure influence groundwater flow. It is designed for **learning and exploration**, not for engineering predictions.
 
 ### Key Features
 
@@ -91,7 +91,7 @@ The app will open in your web browser at `http://localhost:8501`.
 
 ### Physical Basis
 
-The simulator solves a steady-state 2D groundwater flow equation based on **Darcy's Law**:
+The Groundwater Simulator solves a steady-state 2D groundwater flow equation based on **Darcy's Law**:
 
 ```
 q = -K ∇h
@@ -124,13 +124,13 @@ where **R** is the recharge rate.
 - **Fully saturated:** No vadose (unsaturated) zone
 - **2D only:** Simplified representation (ignores 3D effects)
 
-** NOT suitable for:**
+**⚠️ NOT suitable for:**
 - Engineering site assessments
 - Real-world predictions
 - Design calculations
 - Regulatory submissions
 
-** SUITABLE for:**
+**✅ SUITABLE for:**
 - Hydrogeology education
 - Intuition building
 - Exploring parameter sensitivity
@@ -140,21 +140,28 @@ where **R** is the recharge rate.
 
 ```
 .
-├── app.py                           # Root Streamlit entry point
-├── requirements.txt                 # Root runtime dependencies
-├── START_APP.bat                    # Local launcher
-├── Streamlit_Start/                 # Quick-start shortcuts
-└── my_project/
-    ├── pyproject.toml               # Package metadata
-    ├── README.md                    # This file
-    └── my_project/
-        ├── __init__.py
-        ├── groundwater_model.py     # Core physics model
-        ├── frontend/
-        │   └── streamlit_app.py     # UI layer
-        └── backend/
-            └── simulation_service.py # Simulation service layer
+├── app.py
+├── pyproject.toml
+├── requirements.txt
+├── README.md
+├── docs/
+│   └── Groundwater_concept.md
+├── data/
+├── output/
+├── examples/
+│   └── tutorials/
+├── tests/
+├── my_project/
+│   ├── __init__.py
+│   ├── groundwater_model.py
+│   ├── backend/
+│   │   └── simulation_service.py
+│   └── frontend/
+│       └── streamlit_app.py
+└── .gitignore
 ```
+
+The top-level layout now mirrors the target project sketch more closely: documentation lives under `docs/`, runnable examples belong in `examples/tutorials/`, generated files go to `output/`, and root-level tests live in `tests/`.
 
 ## Dependencies
 
