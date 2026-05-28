@@ -555,7 +555,7 @@ Outputs: maps of head, flow magnitude, and flow vectors.
 
 # In the main area, we display the hydraulic head distribution. If the model is solved, we show the final head field. If not, we show the initial head field based on the current parameters.
     with col_main:
-        st.subheader("LiveHydraulic Head Evolution")
+        st.subheader("Live Hydraulic Head Evolution")
         head_status_slot = st.empty()
         head_plot_slot = st.empty()
 
@@ -645,7 +645,7 @@ Outputs: maps of head, flow magnitude, and flow vectors.
             st.subheader("Results")
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
             st.metric("Head (max)", f"{summary['head_max']:.2f} m")
-            st.metric("Maximum Flow", f"{summary['flow_max']:.3f} m/day")
+            st.metric("Max flow", f"{summary['flow_max']:.3f} m/day")
 
         # To organize the visualizations, the following tabs are used.
         tabs = st.tabs([
