@@ -650,9 +650,9 @@ Outputs: maps of head, flow magnitude, and flow vectors.
         # To organize the visualizations, the following tabs are used.
         tabs = st.tabs([
             "Hydraulic Head",
-            "Conductivity",
             "Flow Magnitude",
             "Flow Vectors",
+            "Conductivity",
             "Recharge Map",
         ])
 
@@ -673,24 +673,8 @@ Outputs: maps of head, flow magnitude, and flow vectors.
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
-        # This is the second tab: Conductivity distribution.
+        # This is the second tab: Flow magnitude distribution.
         with tabs[1]:
-            fig_cond = go.Figure(
-                data=go.Heatmap(
-                    z=np.log10(model.hydraulic_conductivity),
-                    x=x_coords,
-                    y=y_coords,
-                    colorscale="RdYlBu_r",
-                    colorbar=dict(title="log10(K)"),
-                )
-            )
-            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
-            fig_cond = style_axes(fig_cond, x_max, y_max, cell_size)
-            fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
-            st.plotly_chart(fig_cond, use_container_width=True, config={"displayModeBar": False, "responsive": True})
-
-        # This is the third tab: Flow magnitude distribution.
-        with tabs[2]:
             fig_mag = go.Figure(
                 data=go.Contour(
                     z=q_mag,
@@ -706,8 +690,8 @@ Outputs: maps of head, flow magnitude, and flow vectors.
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
-        # This is the fourth tab: Flow vectors showing the direction and magnitude of the flow.
-        with tabs[3]:
+        # This is the third tab: Flow vectors showing the direction and magnitude of the flow.
+        with tabs[2]:
             # Streamplot visualization using Matplotlib for clear flow lines
             fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
             stream = ax.streamplot(
@@ -730,6 +714,22 @@ Outputs: maps of head, flow magnitude, and flow vectors.
             ax.set_aspect("equal", adjustable="box")
             ax.grid(True, alpha=0.15)
             st.pyplot(fig, clear_figure=True)
+
+        # This is the fourth tab: Conductivity distribution (moved after flow vectors).
+        with tabs[3]:
+            fig_cond = go.Figure(
+                data=go.Heatmap(
+                    z=np.log10(model.hydraulic_conductivity),
+                    x=x_coords,
+                    y=y_coords,
+                    colorscale="RdYlBu_r",
+                    colorbar=dict(title="log10(K)"),
+                )
+            )
+            fig_cond.update_layout(title="Hydraulic Conductivity (log scale)", xaxis_title="X (m)", yaxis_title="Y (m)", height=800)
+            fig_cond = style_axes(fig_cond, x_max, y_max, cell_size)
+            fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
+            st.plotly_chart(fig_cond, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
         # This is the fifth tab: Recharge distribution.
         with tabs[4]:
