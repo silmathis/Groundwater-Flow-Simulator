@@ -10,6 +10,7 @@ from Simulator.backend.simulation_service import run_simulation
 from Simulator.groundwater_model import GroundwaterModel
 
 
+# Add a compass and invert the y-axis so that the north is at the top and south is at the bottom.
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
     Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
@@ -71,6 +72,7 @@ def style_axes(fig, x_max, y_max, cell_size, nticks=6):
     return fig
 
 
+# In this main function, we build the Streamlit UI which handles user input and displays results.
 def main() -> None:
     st.set_page_config(
         page_title="Groundwater Simulator",
