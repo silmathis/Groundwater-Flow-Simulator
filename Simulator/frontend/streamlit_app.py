@@ -9,6 +9,9 @@ import streamlit as st
 from Simulator.backend.simulation_service import build_model_from_config, run_simulation
 from Simulator.groundwater_model import GroundwaterModel
 
+# Fixed height for the main Plotly head figure (px)
+PLOT_HEIGHT = 700
+
 
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
@@ -102,13 +105,13 @@ def create_head_figure(head, x_coords, y_coords, x_max, y_max, cell_size, title,
             contours=dict(coloring="heatmap"),
         )
     )
-    fig.update_layout(title=title, xaxis_title="X (m)", yaxis_title="Y (m)", height=700)
+    fig.update_layout(title=title, xaxis_title="X (m)", yaxis_title="Y (m)", height=PLOT_HEIGHT)
     fig = style_axes(fig, x_max, y_max, cell_size)
     fig = add_compass_and_invert_yaxis(fig, x_max, y_max, cell_size)
     return fig
 
 
-def render_plotly_component(fig, height=700):
+def render_plotly_component(fig, height=PLOT_HEIGHT):
     """Render a Plotly figure using Streamlit's native Plotly chart renderer.
 
     This keeps styling consistent with the other `st.plotly_chart` usages
@@ -541,7 +544,7 @@ Outputs: maps of head, flow magnitude, and flow vectors.
         st.session_state.solved = False
         st.session_state.last_controls = current_controls
 
-    col_main, col_info = st.columns([3, 1])
+    # Columns for the main display are created after the status text below.
 
     head_display_candidates = [
         1.0,
@@ -554,43 +557,51 @@ Outputs: maps of head, flow magnitude, and flow vectors.
     head_display_max = max(head_display_candidates)
 
 # In the main area, we display the hydraulic head distribution. If the model is solved, we show the final head field. If not, we show the initial head field based on the current parameters.
-    with col_main:
-        st.subheader("Live Hydraulic Head Evolution")
-        head_status_slot = st.empty()
-        head_plot_slot = st.empty()
+    # Title/status above the plot (kept visible regardless of columns)
+    st.subheader("Live Hydraulic Head Evolution")
+    head_status_slot = st.empty()
 
-        if st.session_state.solved and st.session_state.current_result is not None:
-            head_status_slot.caption("Final hydraulic head field")
-            with head_plot_slot.container():
-                render_plotly_component(
-                    create_head_figure(
-                        st.session_state.current_result["model"].head,
-                        x_coords,
-                        y_coords,
-                        x_max,
-                        y_max,
-                        cell_size,
-                        "Hydraulic Head Distribution",
-                        None,
-                    )
-                )
-        else:
-            preview_model = build_model_from_config(simulation_config)
-            preview_model.prepare_initial_state()
-            head_status_slot.caption("Initial hydraulic head field before solving")
-            with head_plot_slot.container():
-                render_plotly_component(
-                    create_head_figure(
-                        preview_model.head,
-                        x_coords,
-                        y_coords,
-                        x_max,
-                        y_max,
-                        cell_size,
-                        "Initial Hydraulic Head Field",
-                        None,
-                    )
-                )
+    # Create two columns after the status text: left for the Plotly chart, right for results.
+    left_col, right_col = st.columns([3, 1])
+
+    # Reserve a slot in the left column for the plot. This slot is updated during solving.
+    head_plot_slot = left_col.empty()
+
+    # Render either the final or initial head figure into the left column slot.
+    if st.session_state.solved and st.session_state.current_result is not None:
+        head_status_slot.caption("Final hydraulic head field")
+        with head_plot_slot.container():
+            render_plotly_component(
+                create_head_figure(
+                    st.session_state.current_result["model"].head,
+                    x_coords,
+                    y_coords,
+                    x_max,
+                    y_max,
+                    cell_size,
+                    "Hydraulic Head Distribution",
+                    None,
+                ),
+                height=PLOT_HEIGHT,
+            )
+    else:
+        preview_model = build_model_from_config(simulation_config)
+        preview_model.prepare_initial_state()
+        head_status_slot.caption("Initial hydraulic head field before solving")
+        with head_plot_slot.container():
+            render_plotly_component(
+                create_head_figure(
+                    preview_model.head,
+                    x_coords,
+                    y_coords,
+                    x_max,
+                    y_max,
+                    cell_size,
+                    "Initial Hydraulic Head Field",
+                    None,
+                ),
+                height=PLOT_HEIGHT,
+            )
 
     # This button runs the simulation with the current parameters. 
     # It also shows a spinner while the model is being solved and updates the session state with the results.
@@ -618,7 +629,8 @@ Outputs: maps of head, flow magnitude, and flow vectors.
                             cell_size,
                             status_text,
                             None,
-                        )
+                        ),
+                        height=PLOT_HEIGHT,
                     )
 
             result = run_simulation(
@@ -632,20 +644,34 @@ Outputs: maps of head, flow magnitude, and flow vectors.
             st.session_state.solved = True
         st.success("Model solved!")
 
-    # If the model is solved and results are available, we display the results in the main area. 
-    if st.session_state.solved and st.session_state.current_result is not None:
-        model = st.session_state.current_result["model"]
-        qx = np.asarray(st.session_state.current_result["qx"])
-        qy = np.asarray(st.session_state.current_result["qy"])
-        q_mag = np.asarray(st.session_state.current_result["q_mag"])
-        summary = st.session_state.current_result["summary"]
-        
-        # The results are briefly summarized here.
-        with col_info:
-            st.subheader("Results")
-            st.metric("Head (min)", f"{summary['head_min']:.2f} m")
-            st.metric("Head (max)", f"{summary['head_max']:.2f} m")
-            st.metric("Max flow", f"{summary['flow_max']:.3f} m/day")
+        # If the model is solved and results are available, we display the results in the main area.
+        if st.session_state.solved and st.session_state.current_result is not None:
+                model = st.session_state.current_result["model"]
+                qx = np.asarray(st.session_state.current_result["qx"])
+                qy = np.asarray(st.session_state.current_result["qy"])
+                q_mag = np.asarray(st.session_state.current_result["q_mag"])
+                summary = st.session_state.current_result["summary"]
+
+                # The results are briefly summarized here. Render in the right column
+                # and vertically centre the content to match the Plotly figure height.
+                head_min = summary["head_min"]
+                head_max = summary["head_max"]
+                max_flow = summary.get("flow_max", summary.get("flow", 0.0))
+
+                results_html = f"""
+<div style="display:flex;flex-direction:column;justify-content:center;height:{PLOT_HEIGHT}px;padding:8px;">
+    <div style="padding:0;">
+        <h4 style="margin:0 0 8px 0;color:#ffffff;">Results</h4>
+        <div style="font-size:14px;line-height:1.6;color:#ffffff;">
+            <div><strong>Head (min):</strong> {head_min:.2f} m</div>
+            <div><strong>Head (max):</strong> {head_max:.2f} m</div>
+            <div><strong>Max flow:</strong> {max_flow:.3f} m/day</div>
+        </div>
+    </div>
+</div>
+"""
+
+                right_col.markdown(results_html, unsafe_allow_html=True)
 
         # To organize the visualizations, the following tabs are used.
         tabs = st.tabs([
