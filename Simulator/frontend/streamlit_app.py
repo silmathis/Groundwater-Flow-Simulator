@@ -85,10 +85,10 @@ def main() -> None:
         """
         <style>
             section[data-testid="stSidebar"] {
-                min-width: 380px;
-                max-width: 380px;
-                width: 380px;
-            }
+                min-width: 420px;
+                max-width: 420px;
+                width: 420px;
+        
 
             section[data-testid="stSidebar"][aria-expanded="false"] {
                 min-width: 0 !important;
@@ -270,8 +270,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         # This is the preview for the homogeneous conductivity.
         if conductivity_mode == "Homogeneous medium":
             aspect_ratio = ny / nx
-            preview_width = 350
-            preview_height = 1200
+            preview_width = 100
+            preview_height = 300
 
             bg_grid = np.zeros((ny, nx))
             fig_bg = go.Figure(
@@ -330,8 +330,8 @@ It is **not** suitable for engineering predictions or real-world applications.
             combined_grid = np.zeros((ny, nx))
             combined_grid[zone_y_min:zone_y_max, zone_x_min:zone_x_max] = 1
             aspect_ratio = ny / nx
-            preview_width = 350  # Sidebar width
-            preview_height = 1200
+            preview_width = 100  # Sidebar width
+            preview_height = 300
 
             zone_color_map = {
                 "High conductivity (sand = 10.0 m/day)": "#fff7b2",
@@ -387,8 +387,8 @@ It is **not** suitable for engineering predictions or real-world applications.
         recharge_grid = np.zeros((ny, nx))
         recharge_grid[recharge_y_min:recharge_y_max, recharge_x_min:recharge_x_max] = recharge_rate
         aspect_ratio = ny / nx
-        preview_width = 350  # Sidebar width
-        preview_height = 1200
+        preview_width = 100  # Sidebar width
+        preview_height = 300
         
         fig_recharge = go.Figure(
             data=go.Heatmap(
