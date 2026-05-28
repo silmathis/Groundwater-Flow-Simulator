@@ -27,7 +27,7 @@ Install everything from one file after activating your virtual environment.
 
 #### Recommended setup (macOS / Linux / Windows)
 
-Open a terminal in the **repository root** and follow the platform-specific steps below to create and activate a virtual environment, then install the project.
+Open a terminal in the **repository root** and create a virtual environment, then install the project's Python dependencies.
 
 macOS / Linux (bash, zsh):
 
@@ -37,7 +37,23 @@ source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-Windows (with Git Bash):
+Windows (Command Prompt):
+
+```cmd
+python -m venv .venv
+.\.venv\Scripts\activate.bat
+python -m pip install -r requirements.txt
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Windows (Git Bash / MSYS2):
 
 ```bash
 python -m venv .venv
@@ -46,10 +62,10 @@ python -m pip install -r requirements.txt
 ```
 
 Notes:
-- Use `python3` on systems where `python` maps to Python 2 or is not available. For example, `python3 -m venv .venv` and `python3 -m pip install -r requirements.txt` on macOS.
-- If `pip install -r requirements.txt` fails with `command not found`, prefer the `python -m pip ...` form shown above.
+- Use `python3` on systems where `python` maps to Python 2 or is not available.
+- If `pip install -r requirements.txt` fails, use the `python -m pip install -r requirements.txt` form shown above.
 - If activation fails, verify you are in the repository root and that the `.venv` directory was created. On macOS you may need to allow script execution or use a different shell (e.g., `zsh`).
-- **Remember:** Every new terminal session requires activation! Use `source .venv/Scripts/activate` (Windows) or `source .venv/bin/activate` (macOS/Linux) to activate the virtual environment again.
+- **Remember:** Activate the virtual environment for every new terminal session using the appropriate command for your shell.
 
 ### Running the App
 
@@ -102,12 +118,13 @@ where:
 - **K** = hydraulic conductivity (m/day)
 - **∇h** = hydraulic head gradient
 
-The flow equation is:
+The general groundwater flow equation solved by the model is (steady-state form):
+
 ```
-∇²h + R/K = 0
+∇ · (K ∇h) + R = 0
 ```
 
-where **R** is the recharge rate.
+where **h** is hydraulic head, **K** is hydraulic conductivity (which may vary in space), and **R** is recharge (source/sink term). For the special case of spatially constant `K` this reduces to `K ∇²h + R = 0`.
 
 ### Numerical Approach
 
@@ -136,34 +153,6 @@ where **R** is the recharge rate.
 - Exploring parameter sensitivity
 - Demonstrating fundamental flow principles
 
-## Project Structure
-
-```
-.
-├── app.py
-├── requirements.txt
-├── README.md
-├── docs/
-│   ├── Groundwater_concept.md
-│   ├── API.md
-│   ├── ARCHITECTURE.md
-│   └── README.md
-├── examples/
-├── tests/
-├── Simulator/
-│   ├── __init__.py
-│   ├── groundwater_model.py
-│   ├── backend/
-│   │   └── simulation_service.py
-│   └── frontend/
-│       └── streamlit_app.py
-├── pyproject.toml
-├── LICENSE
-├── CONTRIBUTING.md
-└── .gitignore
-```
-
-The top-level layout keeps runtime and development dependencies in one place, documents the API in `docs/`, and separates reusable application code from examples and tests.
 
 ## Dependencies
 
@@ -175,33 +164,6 @@ The top-level layout keeps runtime and development dependencies in one place, do
 
 Install all dependencies with `pip install -r requirements.txt` after activating your virtual environment.
 
-## Examples & Exercises
-
-### Exercise 1: Effect of Conductivity
-1. Draw a low-conductivity (clay) zone in the center
-2. Solve and observe: Does flow go around or through the clay?
-3. Try changing the zone's conductivity and re-solve
-
-### Exercise 2: Recharge vs. Conductivity
-1. Add a recharge zone on one side
-2. Vary the conductivity of the aquifer
-3. How does conductivity affect the shape of the water table?
-
-### Exercise 3: Boundary Condition Effects
-1. Set one boundary much higher than others
-2. Solve and observe flow direction
-3. Try symmetric vs. asymmetric boundary conditions
-
-## Contributing
-
-Contributions are welcome! Areas for potential improvement:
-
-- [ ] Time-dependent (transient) flow simulation
-- [ ] Unsaturated flow (Richards equation)
-- [ ] Pumping wells as boundary conditions
-- [ ] Parameter sensitivity analysis
-- [ ] Particle tracking (pathline visualization)
-- [ ] Export results to file formats
 
 ## Future Enhancements (Stretch Goals)
 
@@ -217,11 +179,11 @@ This project is provided as-is for educational purposes.
 
 ## Contact & Support
 
-For questions or issues, please open an issue in the repository.
+Für Fragen oder Support schreiben Sie bitte eine E-Mail an silmathis@ethz.ch.
 
 ---
 
 **Version:** 0.1.0  
-**Last Updated:** 2026-04-21  
+**Last Updated:** 2026-05-28  
 **Status:** Active Development
 
