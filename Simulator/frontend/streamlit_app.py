@@ -177,10 +177,15 @@ def main() -> None:
     # Adding a disclaimer that this is a simplified model for educational purposes:
     st.markdown(
         """
-**Educational Tool Only**  
-This is a simplified, conceptual model designed for learning and exploration.
-It is **not** suitable for engineering predictions or real-world applications.
-"""
+**Conceptual Tool Only!**  
+Simulates groundwater flow on a rectangular grid.
+Computes hydraulic head at each cell.
+Point sources, boundaries, and recharge shape the head.
+Solver updates heads iteratively until they converge.
+Result is a steady-state head field.
+Outputs: maps of head, flow magnitude, and flow vectors.
+
+**IMPORTANT:** Do not confuse the iterations as time steps. This model computes a steady-state solution, not a transient evolution."""
     )
 
 # Tests if model already exists in session state. 
@@ -410,7 +415,7 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     # This section allows the user to define a recharge zone where water infiltrates into the aquifer.
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
-        st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone.")
+        st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone. **Attention** if the conductivity is low and the recharge rate is high, the water can build up and cause very high head values.")
         # Add aquifer thickness which is needed for the calculations of the model.
         aquifer_thickness = st.slider(
             "Aquifer thickness b (m)",
@@ -548,8 +553,9 @@ It is **not** suitable for engineering predictions or real-world applications.
     head_display_candidates.extend(float(p["h"]) for p in point_sources)
     head_display_max = max(head_display_candidates)
 
+# In the main area, we display the hydraulic head distribution. If the model is solved, we show the final head field. If not, we show the initial head field based on the current parameters.
     with col_main:
-        st.subheader("Hydraulic Head Evolution")
+        st.subheader("LiveHydraulic Head Evolution")
         head_status_slot = st.empty()
         head_plot_slot = st.empty()
 
@@ -639,7 +645,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.subheader("Results")
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
             st.metric("Head (max)", f"{summary['head_max']:.2f} m")
-            st.metric("Max flow (m/day)", f"{summary['flow_max']:.3f}")
+            st.metric("Maximum Flow", f"{summary['flow_max']:.3f} m/day")
 
         # To organize the visualizations, the following tabs are used.
         tabs = st.tabs([
