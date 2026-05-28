@@ -168,6 +168,94 @@ def main() -> None:
             button[data-testid="stMainMenuItem-theme-System"] {
                 display: none !important;
             }
+            /* Override Streamlit accent/primary color to blue */
+            :root {
+                --primaryColor: #0d6efd !important; /* Bootstrap blue */
+            }
+
+            /* Buttons and interactive accents */
+            .stButton>button, button[role="button"] {
+                background-color: #0d6efd !important;
+                border-color: #0d6efd !important;
+                color: white !important;
+            }
+
+            /* Sliders */
+            input[type="range"], .stSlider input[type="range"] {
+                accent-color: #0d6efd !important;
+            }
+
+            /* Checkboxes and radios */
+            input[type="checkbox"], input[type="radio"] {
+                accent-color: #0d6efd !important;
+            }
+
+            /* Progress bars, active sliders, and other accent bars */
+            .stProgress>div>div, .stSlider, .stSlider>div, .stSlider>div>div {
+                background: rgba(13,110,253,0.08) !important;
+            }
+
+            /* Metric delta colors and other small accents */
+            .stMetricDelta, .css-1cpxqff, .stCheckbox, .stRadio {
+                color: #0d6efd !important;
+            }
+
+            /* Try to color toggles, selects and multi-selects */
+            .stMultiSelect .css-1d391kg, .stSelectbox .css-1d391kg, .stNumberInput .css-1d391kg {
+                border-color: #0d6efd !important;
+            }
+            /* Native range (slider) styling for WebKit, Firefox, Edge */
+            input[type="range"] {
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                background: transparent !important;
+            }
+            input[type="range"]:focus {
+                outline: none !important;
+            }
+            input[type="range"]::-webkit-slider-runnable-track {
+                height: 8px !important;
+                background: rgba(220,220,220,0.2) !important;
+                border-radius: 6px !important;
+                border: none !important;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                width: 18px !important;
+                height: 18px !important;
+                margin-top: -5px !important;
+                background: #0d6efd !important;
+                border-radius: 50% !important;
+                border: 3px solid rgba(13,110,253,0.0) !important;
+                box-shadow: none !important;
+            }
+            input[type="range"]::-moz-range-track {
+                height: 8px !important;
+                background: rgba(220,220,220,0.2) !important;
+                border-radius: 6px !important;
+            }
+            input[type="range"]::-moz-range-progress {
+                background: #0d6efd !important;
+                height: 8px !important;
+                border-radius: 6px !important;
+            }
+            input[type="range"]::-moz-range-thumb {
+                background: #0d6efd !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            input[type="range"]::-ms-thumb {
+                background: #0d6efd !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            /* Remove focus rings / blue outline for buttons and sliders */
+            .stButton>button:focus, button[role="button"]:focus, input[type="range"]:focus {
+                outline: none !important;
+                box-shadow: none !important;
+            }
         </style>
         """,
         unsafe_allow_html=True,
