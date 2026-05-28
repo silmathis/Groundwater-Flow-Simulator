@@ -1,4 +1,6 @@
-"""Streamlit frontend for the groundwater simulator."""
+"""Streamlit frontend for the groundwater simulator.
+
+This file defines the Streamlit app that serves as the user interface for the groundwater simulator. In the process of solving the app runs through the code from top to bottom, so all the helper functions are defined first, followed by the main function which builds the UI and handles user interactions."""
 
 import time
 import numpy as np
@@ -8,9 +10,6 @@ import streamlit as st
 
 from Simulator.backend.simulation_service import build_model_from_config, run_simulation
 from Simulator.groundwater_model import GroundwaterModel
-
-# Fixed height for the main Plotly head figure (px)
-PLOT_HEIGHT = 700
 
 
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
@@ -42,7 +41,7 @@ def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     
     return fig
 
-
+#ensures that the x and y axes have the same scale
 def enforce_equal_xy_aspect(fig):
     """Ensure 1:1 aspect ratio between x and y axes (equal units per pixel).
 
@@ -52,7 +51,7 @@ def enforce_equal_xy_aspect(fig):
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
     return fig
 
-
+#defines the plot styling for the axes, including gridlines and tick formatting, to ensure a consistent look across different visualizations.
 def style_axes(fig, x_max, y_max, cell_size, nticks=6):
     """Style axes for consistent background labels and gridlines.
 
@@ -73,7 +72,10 @@ def style_axes(fig, x_max, y_max, cell_size, nticks=6):
                      showgrid=True, gridcolor=grid_color, tickfont=tick_font)
     return fig
 
+# Fixed height for the main Plotly head figure (px)
+PLOT_HEIGHT = 700
 
+#creates a Plotly figure for the live preview of the hydraulic head distribution during the solving process. It computes the color scale limits based on the data and adds compass annotations for orientation.
 def create_head_figure(head, x_coords, y_coords, x_max, y_max, cell_size, title, zmax=None):
     """Build a consistent hydraulic head figure for previews and live updates.
 
@@ -130,7 +132,7 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
-
+    #this is only needed to ensure the sidebar is wide enough to display all controls without wrapping, and to hide the default Streamlit menu and theme options for a cleaner look.
     st.markdown(
         """
         <style>
