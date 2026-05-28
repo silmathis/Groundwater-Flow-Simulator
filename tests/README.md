@@ -4,7 +4,7 @@ This directory contains unit tests for the Groundwater Simulator core modules.
 
 ## Running Tests
 
-`pytest.ini` is stored in this `tests/` folder.
+As `pytest.ini` is stored in this `tests/` folder.
 When running from the repository root, use:
 
 ```bash
