@@ -1,4 +1,4 @@
-# 💧 Groundwater Simulator
+# Groundwater Simulator
 
 An educational web-based tool for exploring 2D groundwater flow patterns using a simplified model based on Darcy's law.
 
