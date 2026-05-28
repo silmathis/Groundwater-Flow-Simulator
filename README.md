@@ -8,15 +8,15 @@ The Groundwater Simulator allows students and educators to interactively explore
 
 ### Key Features
 
-- **Interactive 2D Simulation:** Adjust parameters in real-time and watch flow patterns respond
+- **Interactive 2D Simulation:** Adjust parameters and watch the hydraulc head field and flow patterns respond
 - **Zone-based Conductivity:** Define regions with different rock types (sand, silt, clay)
-- **Boundary Controls:** Set water table heights at domain edges
-- **Rich Visualizations:**
+- **Initial Conditions:** Set water table heights at domain edges or point sources
+- **Visualizations:**
   - Hydraulic head (water table elevation) contours
   - Conductivity/permeability zones
   - Flow magnitude heatmaps
   - Flow direction vectors
-- **Built-in Guidance:** Clear explanations of model parameters and output meaning
+- **Built-in Guidance:** Explanations of model parameters
 
 ## Getting Started
 
@@ -37,23 +37,7 @@ source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-Windows (Command Prompt):
-
-```cmd
-python -m venv .venv
-.\.venv\Scripts\activate.bat
-python -m pip install -r requirements.txt
-```
-
-Windows (PowerShell):
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
-
-Windows (Git Bash / MSYS2):
+Windows (Git Bash):
 
 ```bash
 python -m venv .venv
@@ -97,11 +81,10 @@ The app will open in your web browser at `http://localhost:8501`.
 
 ## Usage
 
-1. **Set Boundary Conditions:** Use sliders to set hydraulic head at domain edges
-2. **Define Subsurface Zones:** Draw regions with different conductivity (high = sand, low = clay)
-3. **Add Recharge:** Define where water infiltrates from above
-4. **Solve:** Click "Solve Model" to calculate the equilibrium head and flow field
-5. **Explore:** View multiple visualizations to understand flow behavior
+1. **Set Boundary Conditions:** Use sliders to set hydraulic head at domain edges or point sources.
+2. **Define Subsurface Zones:** Define regions with different conductivity (high = sand, low = clay).
+3. **Add Recharge:** Define where water infiltrates from above. **NOTE:** If the conductivity is low and the recharge is high the model generates an expeptionally high hydraulic head.
+4. **Solve:** Click "Solve Model" to calculate the equilibrium head and flow field.
 
 ## Model Description
 
@@ -134,20 +117,19 @@ where **h** is hydraulic head, **K** is hydraulic conductivity (which may vary i
 
 ### Assumptions & Limitations
 
-- **Steady-state only:** Equilibrium conditions, no time-dependent dynamics
-- **Homogeneous within zones:** Conductivity is constant within each defined zone
-- **No wells or springs:** Simplified boundary representation
-- **No anisotropy:** Same conductivity in all directions
-- **Fully saturated:** No vadose (unsaturated) zone
-- **2D only:** Simplified representation (ignores 3D effects)
+- **Steady-state only:** Equilibrium conditions only; no time-dependent dynamics or storage term.
+- **Piecewise homogeneous conductivity:** Hydraulic conductivity is constant within each defined zone, but can vary between zones.
+- **Isotropic conductivity:** Same hydraulic conductivity in all horizontal directions; no anisotropy.
+- **Fully saturated flow:** The model assumes saturated groundwater flow; no vadose (unsaturated) zone is represented.
+- **2D horizontal representation:** Flow is calculated only in the x- and y-directions; vertical and full 3D effects are ignored.
 
-** NOT suitable for:**
+**NOT suitable for:**
 - Engineering site assessments
 - Real-world predictions
 - Design calculations
 - Regulatory submissions
 
-** SUITABLE for:**
+**SUITABLE for:**
 - Hydrogeology education
 - Intuition building
 - Exploring parameter sensitivity
@@ -160,7 +142,7 @@ where **h** is hydraulic head, **K** is hydraulic conductivity (which may vary i
 - **SciPy:** Scientific computing utilities
 - **Streamlit:** Web application framework
 - **Plotly:** Interactive visualizations
-- **Matplotlib:** (optional) Static plotting
+- **Matplotlib:** Plotting
 
 Install all dependencies with `pip install -r requirements.txt` after activating your virtual environment.
 
@@ -176,10 +158,6 @@ Install all dependencies with `pip install -r requirements.txt` after activating
 ## License
 
 This project is provided as-is for educational purposes.
-
-## Contact & Support
-
-Für Fragen oder Support schreiben Sie bitte eine E-Mail an silmathis@ethz.ch.
 
 ---
 
