@@ -360,8 +360,10 @@ It is **not** suitable for engineering predictions or real-world applications.
             )
             st.plotly_chart(fig_zone, use_container_width=True)
 
+    # This section allows the user to define a recharge zone where water infiltrates into the aquifer.
     with st.sidebar.expander("Recharge (Infiltration)", expanded=False):
         st.caption("Define a rectangular recharge zone with a specified rate. The x- and y-values set the coordinates of this zone.")
+        # Add aquifer thickness which is needed for the calculations of the model.
         aquifer_thickness = st.slider(
             "Aquifer thickness b (m)",
             min_value=1.0,
@@ -381,7 +383,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             recharge_x_max = st.number_input("X end", 1, nx, value=int(nx * 0.7), key="rechg_x_max")
             recharge_y_max = st.number_input("Y end", 1, ny, value=int(ny * 0.3), key="rechg_y_max")
         
-        # Recharge zone preview visualization with correct aspect ratio
+        # This shows a preview of the recharge zone based on the user's input.
         recharge_grid = np.zeros((ny, nx))
         recharge_grid[recharge_y_min:recharge_y_max, recharge_x_min:recharge_x_max] = recharge_rate
         aspect_ratio = ny / nx
@@ -407,6 +409,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         )
         st.plotly_chart(fig_recharge, use_container_width=True)
 
+    # Finally, the user can set the solver parameters such as maximum iterations and convergence tolerance.
     with st.sidebar.expander("Solver", expanded=False):
         iterations = st.slider("Max iterations", 10, 5000, 2500, key="solver_iterations")
         tolerance = st.selectbox(
@@ -417,7 +420,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             key="solver_tolerance"
         )
 
-    # Reset Model button at the bottom left of sidebar
+    # This creates a button to reset the model to its initial state.
     col_reset, col_spacer = st.sidebar.columns([1, 1.5])
     with col_reset:
         if st.button("Reset Model", type="secondary", use_container_width=True):
@@ -425,6 +428,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.session_state.solved = False
             st.rerun()
 
+    # The current contrals are stored in the session state.
     current_controls = (
         nx,
         ny,
@@ -453,12 +457,15 @@ It is **not** suitable for engineering predictions or real-world applications.
         tolerance,
     )
 
+    # If the controls have changed since the last run, we mark the model as unsolved to indicate that the results may be outdated.
     if st.session_state.get("last_controls") != current_controls:
         st.session_state.solved = False
         st.session_state.last_controls = current_controls
 
     col_main, col_info = st.columns([3, 1])
 
+    # This button runs the simulation with the current parameters. 
+    # It also shows a spinner while the model is being solved and updates the session state with the results.
     if st.button("Solve Model", width="stretch", type="primary"):
         with st.spinner("Solving..."):
             config = {
@@ -494,18 +501,22 @@ It is **not** suitable for engineering predictions or real-world applications.
             st.session_state.solved = True
         st.success("Model solved!")
 
+    # If the model is solved and results are available, we display the results in the main area. 
     if st.session_state.solved and st.session_state.current_result is not None:
         model = st.session_state.current_result["model"]
         qx = np.asarray(st.session_state.current_result["qx"])
         qy = np.asarray(st.session_state.current_result["qy"])
         q_mag = np.asarray(st.session_state.current_result["q_mag"])
         summary = st.session_state.current_result["summary"]
+        
+        # The results are briefly summarized here.
         with col_info:
             st.subheader("Results")
             st.metric("Head (min)", f"{summary['head_min']:.2f} m")
             st.metric("Head (max)", f"{summary['head_max']:.2f} m")
             st.metric("Max flow (m/day)", f"{summary['flow_max']:.3f}")
 
+        # To organize the visualizations, the following tabs are used.
         tabs = st.tabs([
             "Hydraulic Head",
             "Conductivity",
@@ -515,6 +526,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             "Streamplot",
         ])
 
+        # This is the first tab: Hydraulic head distribution.
         with tabs[0]:
             fig_head = go.Figure(
                 data=go.Contour(
@@ -531,6 +543,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_head = add_compass_and_invert_yaxis(fig_head, x_max, y_max, cell_size)
             st.plotly_chart(fig_head, width="stretch")
 
+        # This is the second tab: Conductivity distribution.
         with tabs[1]:
             fig_cond = go.Figure(
                 data=go.Heatmap(
@@ -546,6 +559,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_cond = add_compass_and_invert_yaxis(fig_cond, x_max, y_max, cell_size)
             st.plotly_chart(fig_cond, width="stretch")
 
+        # This is the third tab: Flow magnitude distribution.
         with tabs[2]:
             fig_mag = go.Figure(
                 data=go.Contour(
@@ -562,6 +576,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_mag = add_compass_and_invert_yaxis(fig_mag, x_max, y_max, cell_size)
             st.plotly_chart(fig_mag, width="stretch")
 
+        # This is the fourth tab: Flow vectors showing the direction and magnitude of the flow.
         with tabs[3]:
             # Streamplot visualization using Matplotlib for clear flow lines
             fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
@@ -586,6 +601,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             ax.grid(True, alpha=0.15)
             st.pyplot(fig, clear_figure=True)
 
+        # This is the fifth tab: Recharge distribution.
         with tabs[4]:
             recharge_map = np.zeros_like(model.head)
             recharge_map[model.recharge > 0] = model.recharge[model.recharge > 0]
@@ -602,6 +618,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             fig_recharge = style_axes(fig_recharge, x_max, y_max, cell_size)
             st.plotly_chart(fig_recharge, use_container_width=True)
 
+        # This is the sixth tab: Combined flow direction and magnitude.
         with tabs[5]:
             fig, ax = plt.subplots(figsize=(12, 12), constrained_layout=True)
             stream = ax.streamplot(
@@ -625,5 +642,6 @@ It is **not** suitable for engineering predictions or real-world applications.
             ax.grid(True, alpha=0.15)
             st.pyplot(fig, clear_figure=True)
 
+# The main function is called when the script is run, starting the Streamlit app.
 if __name__ == "__main__":
     main()
