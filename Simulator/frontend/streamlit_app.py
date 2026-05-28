@@ -480,9 +480,9 @@ It is **not** suitable for engineering predictions or real-world applications.
 
     if st.session_state.solved and st.session_state.current_result is not None:
         model = st.session_state.current_result["model"]
-        qx = st.session_state.current_result["qx"]
-        qy = st.session_state.current_result["qy"]
-        q_mag = st.session_state.current_result["q_mag"]
+        qx = np.asarray(st.session_state.current_result["qx"])
+        qy = np.asarray(st.session_state.current_result["qy"])
+        q_mag = np.asarray(st.session_state.current_result["q_mag"])
         summary = st.session_state.current_result["summary"]
         with col_info:
             st.subheader("Results")

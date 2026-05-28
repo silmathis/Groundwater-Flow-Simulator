@@ -46,10 +46,21 @@ def run_simulation(config: Dict[str, Any]) -> Dict[str, Any]:
     model.solve(iterations=config["iterations"], tolerance=config["tolerance"])
     qx, qy, q_mag = model.compute_flow()
 
+    # Prepare serializable versions of array data for safe transfer
+    head_list = model.head.tolist()
+    qx_list = qx.tolist()
+    qy_list = qy.tolist()
+    qmag_list = q_mag.tolist()
+    conductivity_list = model.hydraulic_conductivity.tolist()
+    recharge_list = model.recharge.tolist()
+
     return {
         "model": model,
-        "qx": qx,
-        "qy": qy,
-        "q_mag": q_mag,
+        "head": head_list,
+        "qx": qx_list,
+        "qy": qy_list,
+        "q_mag": qmag_list,
+        "hydraulic_conductivity": conductivity_list,
+        "recharge": recharge_list,
         "summary": model.get_summary(),
     }
