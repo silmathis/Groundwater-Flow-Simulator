@@ -10,7 +10,6 @@ from Simulator.backend.simulation_service import run_simulation
 from Simulator.groundwater_model import GroundwaterModel
 
 
-# Add a compass and invert the y-axis so that the north is at the top and south is at the bottom.
 def add_compass_and_invert_yaxis(fig, x_max, y_max, pad):
     """
     Add compass directions (N, S, O, W) and invert y-axis for proper geographic orientation.
@@ -74,6 +73,7 @@ def style_axes(fig, x_max, y_max, cell_size, nticks=6):
 
 # In this main function, we build the Streamlit UI which handles user input and displays results.
 def main() -> None:
+    # Defines the title, layout and sidebar state for the Streamlit app:
     st.set_page_config(
         page_title="Groundwater Simulator",
         page_icon=None,
@@ -127,6 +127,7 @@ def main() -> None:
     )
 
     st.title("Groundwater Simulator")
+    # Adding a disclaimer that this is a simplified model for educational purposes:
     st.markdown(
         """
 **Educational Tool Only**  
@@ -135,6 +136,8 @@ It is **not** suitable for engineering predictions or real-world applications.
 """
     )
 
+# Tests if model already exists in session state. 
+# If not, a new model is initialized.
     if "model" not in st.session_state:
         st.session_state.model = GroundwaterModel(nx=50, ny=50)
         st.session_state.solved = False
@@ -148,13 +151,17 @@ It is **not** suitable for engineering predictions or real-world applications.
     x_max = x_coords[-1]
     y_max = y_coords[-1]
 
+# Now, we build the sidebar UI for user input of the model parameters.
     st.sidebar.header("Model Parameters")
 
+    # This section allows the user to set the domain size.
+    # Grid width and height can be chosen, each between 20 and 100 cells.
     with st.sidebar.expander("Domain Size", expanded=False):
         st.caption("Sets the simulation grid’s overall size and resolution. Larger grids reveal finer details but require more computation time.")
         nx = st.slider("Grid width (cells)", min_value=20, max_value=100, value=model.nx)
         ny = st.slider("Grid height (cells)", min_value=20, max_value=100, value=model.ny)
 
+    # The model restarts whenever the grid size changes.
     if nx != model.nx or ny != model.ny:
         for idx in range(1, 7):
             x_key = f"ps{idx}_x"
@@ -168,8 +175,12 @@ It is **not** suitable for engineering predictions or real-world applications.
         model = st.session_state.model
         st.rerun()
 
+    # Here, the user can set hydraulic head values through point sources and boundary conditions.
     with st.sidebar.expander("Hydraulic Head", expanded=False):
         st.caption("Set the hydraulic head values. Point sources inject or extract water at specified locations, while boundary conditions can be applied at the edges of the domain to force inflow or outflow.")
+        
+        # This is the Section for the point sources.
+        # The user can add up to 6 point sources, each with its own location and head value.
         with st.expander("Point Sources", expanded=False):
             st.caption("Coordinates of the point sources cannot be at the boundaries of the grid.")
             point_source_count = st.slider("Number of point sources", 0, 6, 0)
@@ -195,6 +206,8 @@ It is **not** suitable for engineering predictions or real-world applications.
                 # Map UI coordinates [0..nx] / [0..ny] to model cell indices [0..nx-1] / [0..ny-1].
                 point_sources.append({"x": min(x_coord, nx - 1), "y": min(y_coord, ny - 1), "h": float(h_val)})
 
+        # This is the section for the boundary conditions at the corners of the domain.
+        # The user can set the hydraulic head values at the four corners, and the model will interpolate linearly along the edges.
         with st.expander("Boundary Conditions (corners only)", expanded=False):
             st.caption("Define hydraulic head only at the four domain corners. Edges are interpolated linearly from corner values.")
 
@@ -206,6 +219,7 @@ It is **not** suitable for engineering predictions or real-world applications.
                 corner_tr = st.number_input("Top-right head (m)", min_value=0.0, max_value=100.0, value=10.0, step=0.1)
                 corner_br = st.number_input("Bottom-right head (m)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
 
+    # In this section, the user can define the conductivity distribution across the domain.
     with st.sidebar.expander("Conductivity", expanded=False):
         st.caption("Define the conductivity distribution across the domain.")
         conductivity_mode = st.radio(
@@ -213,14 +227,14 @@ It is **not** suitable for engineering predictions or real-world applications.
             ["Homogeneous medium", "Heterogeneous medium with zone"],
         )
 
-        # Predefined sediment conductivities
+        # These are the different predefined sediment conductivities.
         sediment_options = {
             "High conductivity (sand = 10.0 m/day)": 10.0,  # m/day
             "Medium (silt = 0.1 m/day)": 0.1,  # m/day
             "Low conductivity (clay = 0.01 m/day)": 0.01,  # m/day
         }
 
-        # Background conductivity selection (sediment types or custom)
+        # Here, the user can choose a custom background conductivity or select from the predefined sediment types.
         st.markdown("**Background conductivity**")
         bg_choice = st.radio(
             "Background type",
@@ -239,7 +253,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         else:
             background_k = sediment_options[bg_choice]
 
-        # Color mapping for sediments (used in previews)
+        # This maps the colors for the preview based on the user's choices.
         bg_color_map = {
             "High conductivity (sand = 10.0 m/day)": "#fff7b2",  # pale yellow
             "Medium (silt = 0.1 m/day)": "#dcdcdc",  # light gray
@@ -253,6 +267,7 @@ It is **not** suitable for engineering predictions or real-world applications.
         selected_k = None
         zone_x_min = zone_x_max = zone_y_min = zone_y_max = 0
 
+        # This is the preview for the homogeneous conductivity.
         if conductivity_mode == "Homogeneous medium":
             aspect_ratio = ny / nx
             preview_width = 350
@@ -278,6 +293,7 @@ It is **not** suitable for engineering predictions or real-world applications.
             )
             st.plotly_chart(fig_bg, use_container_width=True)
 
+        # This is the preview for the heterogeneous conductivity with a zone.
         if conductivity_mode == "Heterogeneous medium with zone":
             st.markdown("**Subsurface Zone**")
             st.markdown("Choose sediment type for the zone or set custom K")
